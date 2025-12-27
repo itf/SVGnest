@@ -12,7 +12,7 @@ export enum THREAD_TYPE {
     PAIR = 0
 }
 
-export type NFPCache = Map<number, ArrayBuffer>;
+export type NFPCache = Map<number, Float32Array>;
 
 export interface BoundRect<T extends TypedArray> {
     clone(): BoundRect<T>;

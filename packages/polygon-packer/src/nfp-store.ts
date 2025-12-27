@@ -4,7 +4,7 @@ import PolygonNode from './polygon-node';
 import { serializeConfig } from './helpers';
 
 export default class NFPStore {
-    #nfpCache: NFPCache = new Map<u32, ArrayBuffer>();
+    #nfpCache: NFPCache = new Map<u32, Float32Array>();
 
     #nfpPairs: Float32Array[] = [];
 
@@ -35,7 +35,7 @@ export default class NFPStore {
         this.#angleSplit = config.rotations;
         this.#nfpPairs = [];
 
-        const newCache: NFPCache = new Map<u32, ArrayBuffer>();
+        const newCache: NFPCache = new Map<u32, Float32Array>();
 
         for (let i = 0; i < this.#sources.length; ++i) {
             const node = nodes[this.#sources[i]];
@@ -64,7 +64,7 @@ export default class NFPStore {
                 if (nfps[i].byteLength > Float64Array.BYTES_PER_ELEMENT << 1) {
                     // a null nfp means the nfp could not be generated, either because the parts simply don't
                     // fit or an error in the nfp algo
-                    this.#nfpCache.set(view.getUint32(0, true), nfps[i]);
+                    this.#nfpCache.set(view.getUint32(0, true), new Float32Array(nfps[i]));
                 }
             }
         }
@@ -92,11 +92,9 @@ export default class NFPStore {
     }
 
     public getPlacementData(inputNodes: PolygonNode[], area: f32): Uint8Array {
-        const nfpBuffer = NFPStore.serializeMapToBuffer(this.#nfpCache);
         const inputNodesArray = this.#sources.map(source => inputNodes[source]);
-        const nfpData = new Uint8Array(nfpBuffer);
 
-        return NFPStore.generatePlacementData(nfpData.slice(), this.#configCompressed, inputNodesArray, area);
+        return NFPStore.generatePlacementData(this.nfpBuffer, this.#configCompressed, inputNodesArray, area);
     }
 
     public get nfpPairs(): Float32Array[] {
@@ -113,6 +111,10 @@ export default class NFPStore {
 
     public get phenotypeSource(): u16 {
         return this.#phenotypeSource;
+    }
+
+    public get nfpBuffer(): Uint8Array {
+        return new Uint8Array(NFPStore.serializeMapToBuffer(this.#nfpCache));
     }
 
 
@@ -132,27 +134,30 @@ export default class NFPStore {
     }
 
     public static serializeMapToBuffer(map: NFPCache): ArrayBuffer {
+        // Calculate total size in f32 elements: 2 per entry (key + length) + data
         const totalSize: number = Array.from(map.values()).reduce(
-            (acc, buffer) => acc + (Uint32Array.BYTES_PER_ELEMENT << 1) + buffer.byteLength,
+            (acc, buffer) => acc + 2 + buffer.length,
             0
         );
-        const resultBuffer: ArrayBuffer = new ArrayBuffer(totalSize);
-        const view: DataView = new DataView(resultBuffer);
+        const resultBuffer = new Float32Array(totalSize);
+        const view: DataView = new DataView(resultBuffer.buffer);
         const entries = Array.from(map.entries());
-        let length: number = 0;
+        let offset: number = 0;
 
-        entries.reduce((offset, [key, buffer]) => {
-            view.setUint32(offset, key);
-            offset += Uint32Array.BYTES_PER_ELEMENT;
-            length = buffer.byteLength;
-            view.setUint32(offset, length);
-            offset += Uint32Array.BYTES_PER_ELEMENT;
+        for (const [key, buffer] of entries) {
+            // Write key as u32 reinterpreted as f32
+            view.setUint32(offset * 4, key);
+            offset += 1;
 
-            new Uint8Array(resultBuffer, offset).set(new Uint8Array(buffer));
+            // Write length as u32 reinterpreted as f32
+            view.setUint32(offset * 4, buffer.byteLength);
+            offset += 1;
 
-            return offset + length;
-        }, 0);
+            // Copy Float32Array data directly
+            resultBuffer.set(buffer, offset);
+            offset += buffer.length;
+        }
 
-        return resultBuffer;
+        return resultBuffer.buffer;
     }
 }
