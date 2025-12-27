@@ -332,41 +332,35 @@ pub fn nfp_store_init(
 /// Update NFP cache in the singleton NFPStore
 ///
 /// Arguments:
-/// - nfps_data: Uint8Array containing serialized NFPs [count (u32), [size (u32), data]...]
+/// - nfps_data: Float32Array containing serialized NFPs [count (f32 as u32), [size (f32 as u32), data]...]
 #[wasm_bindgen]
-pub fn nfp_store_update(nfps_data: &[u8]) {
+pub fn nfp_store_update(nfps_data: &[f32]) {
     use crate::nesting::nfp_store::NFPStore;
 
-    if nfps_data.len() < 4 {
+    if nfps_data.is_empty() {
         return;
     }
 
-    // Read count
-    let count =
-        u32::from_le_bytes([nfps_data[0], nfps_data[1], nfps_data[2], nfps_data[3]]) as usize;
-    let mut offset = 4;
+    // Read count from first f32 (reinterpreted as u32)
+    let count = nfps_data[0].to_bits() as usize;
+    let mut offset = 1;
 
-    let mut nfps: Vec<Vec<u8>> = Vec::with_capacity(count);
+    let mut nfps: Vec<Vec<f32>> = Vec::with_capacity(count);
 
     for _ in 0..count {
-        if offset + 4 > nfps_data.len() {
+        if offset >= nfps_data.len() {
             break;
         }
 
-        // Read size
-        let size = u32::from_le_bytes([
-            nfps_data[offset],
-            nfps_data[offset + 1],
-            nfps_data[offset + 2],
-            nfps_data[offset + 3],
-        ]) as usize;
-        offset += 4;
+        // Read size from f32 (reinterpreted as u32)
+        let size = nfps_data[offset].to_bits() as usize;
+        offset += 1;
 
         if offset + size > nfps_data.len() {
             break;
         }
 
-        // Read NFP data
+        // Read NFP data as f32
         let nfp = nfps_data[offset..offset + size].to_vec();
         offset += size;
 
@@ -464,7 +458,6 @@ pub fn nfp_store_get_phenotype_source() -> u16 {
     NFPStore::with_instance(|nfp_store| nfp_store.phenotype_source())
 }
 
-
 /// Generate pair data for NFP calculation
 ///
 /// Takes key, config, and serialized nodes (2 nodes), returns Float32Array with header and rotated nodes
@@ -487,11 +480,11 @@ pub fn nfp_generate_pair(key: u32, config: u32, nodes_data: &[f32]) -> Float32Ar
 
 /// Generate placement data for genetic algorithm
 ///
-/// Takes NFP cache buffer, config, serialized input nodes, and area
+/// Takes NFP cache buffer as Float32Array, config, serialized input nodes, and area
 /// Returns Uint8Array with header + NFP cache + rotated nodes
 #[wasm_bindgen]
 pub fn nfp_generate_placement_data(
-    nfp_buffer: &[u8],
+    nfp_buffer: &[f32],
     config: u32,
     nodes_data: &[f32],
     area: f32,

@@ -118,7 +118,7 @@ impl WasmPacker {
         byte_buffer
     }
 
-    pub fn get_placement_data(&mut self, generated_nfp: Vec<Vec<u8>>) -> Vec<u8> {
+    pub fn get_placement_data(&mut self, generated_nfp: Vec<Vec<f32>>) -> Vec<u8> {
         NFPStore::with_instance(|nfp_store| {
             nfp_store.update(generated_nfp);
             nfp_store.get_placement_data(&self.nodes, self.bin_area)

@@ -1,5 +1,5 @@
 import { nfp_generate_pair, nfp_generate_placement_data } from 'wasm-nesting';
-import { NFPCache, NestConfig, THREAD_TYPE, i32, u16, u32, u8, usize, f32 } from './types';
+import { NFPCache, NestConfig, i32, u16, u32, u8, usize, f32 } from './types';
 import PolygonNode from './polygon-node';
 import { serializeConfig } from './helpers';
 
@@ -113,8 +113,8 @@ export default class NFPStore {
         return this.#phenotypeSource;
     }
 
-    public get nfpBuffer(): Uint8Array {
-        return new Uint8Array(NFPStore.serializeMapToBuffer(this.#nfpCache));
+    public get nfpBuffer(): Float32Array {
+        return NFPStore.serializeMapToBuffer(this.#nfpCache);
     }
 
 
@@ -126,14 +126,14 @@ export default class NFPStore {
         return nfp_generate_pair(key, config, nodesUint8);
     }
 
-    public static generatePlacementData(nfpBuffer: Uint8Array, config: u32, inputNodes: PolygonNode[], area: f32): Uint8Array {
+    public static generatePlacementData(nfpBuffer: Float32Array, config: u32, inputNodes: PolygonNode[], area: f32): Uint8Array {
         const serialized = PolygonNode.serialize(inputNodes);
         const nodesFloat32 = new Float32Array(serialized);
 
         return nfp_generate_placement_data(nfpBuffer, config, nodesFloat32, area);
     }
 
-    public static serializeMapToBuffer(map: NFPCache): ArrayBuffer {
+    public static serializeMapToBuffer(map: NFPCache): Float32Array {
         // Calculate total size in f32 elements: 2 per entry (key + length) + data
         const totalSize: number = Array.from(map.values()).reduce(
             (acc, buffer) => acc + 2 + buffer.length,
@@ -158,6 +158,6 @@ export default class NFPStore {
             offset += buffer.length;
         }
 
-        return resultBuffer.buffer;
+        return resultBuffer;
     }
 }

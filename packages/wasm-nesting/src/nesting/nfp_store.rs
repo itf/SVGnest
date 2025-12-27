@@ -7,7 +7,7 @@ const THREAD_TYPE_PLACEMENT: u32 = 1;
 const THREAD_TYPE_PAIR: u32 = 0;
 
 pub struct NFPStore {
-    nfp_cache: HashMap<u32, Vec<u8>>,
+    nfp_cache: HashMap<u32, Vec<f32>>,
     nfp_pairs: Vec<Vec<f32>>,
     sources: Vec<i32>,
     phenotype_source: u16,
@@ -55,7 +55,7 @@ impl NFPStore {
         self.angle_split = config.rotations;
         self.nfp_pairs.clear();
 
-        let mut new_cache: HashMap<u32, Vec<u8>> = HashMap::new();
+        let mut new_cache: HashMap<u32, Vec<f32>> = HashMap::new();
 
         for i in 0..self.sources.len() {
             let mut node = nodes[self.sources[i] as usize].clone();
@@ -73,15 +73,16 @@ impl NFPStore {
         self.nfp_cache = new_cache;
     }
 
-    pub fn update(&mut self, nfps: Vec<Vec<u8>>) {
+    pub fn update(&mut self, nfps: Vec<Vec<f32>>) {
         let nfp_count = nfps.len();
 
         if nfp_count != 0 {
             for nfp in nfps {
-                if nfp.len() > 16 {
-                    // 16 = 2 * f64 bytes (2 floats for header)
+                if nfp.len() > 4 {
+                    // 4 = 2 * f32 elements (2 floats for header minimum)
                     // A null nfp means the nfp could not be generated
-                    let key = u32::from_le_bytes([nfp[0], nfp[1], nfp[2], nfp[3]]);
+                    // Extract key from first f32 (reinterpreted as u32) in big-endian
+                    let key = nfp[0].to_bits().swap_bytes();
                     self.nfp_cache.insert(key, nfp);
                 }
             }
@@ -93,7 +94,7 @@ impl NFPStore {
         node1: &PolygonNode,
         node2: &PolygonNode,
         inside: bool,
-        new_cache: &mut HashMap<u32, Vec<u8>>,
+        new_cache: &mut HashMap<u32, Vec<f32>>,
     ) {
         let key =
             PolygonNode::generate_nfp_cache_key(self.angle_split as u32, inside, node1, node2);
@@ -119,14 +120,14 @@ impl NFPStore {
     }
 
     pub fn get_placement_data(&self, input_nodes: &[PolygonNode], area: f32) -> Vec<u8> {
-        let nfp_buffer = Self::serialize_map_to_buffer(&self.nfp_cache);
+        let nfp_buffer_f32 = Self::serialize_map_to_f32(&self.nfp_cache);
         let nodes: Vec<PolygonNode> = self
             .sources
             .iter()
             .map(|&source| input_nodes[source as usize].clone())
             .collect();
 
-        Self::generate_placement_data(&nfp_buffer, self.config_compressed, &nodes, area)
+        Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area)
     }
 
     pub fn nfp_pairs(&self) -> &[Vec<f32>] {
@@ -171,15 +172,15 @@ impl NFPStore {
 
     /// Generate placement data for genetic algorithm
     ///
-    /// Takes NFP cache buffer, config, input nodes, and area
-    /// Returns serialized buffer with header + NFP cache + rotated nodes as f32
+    /// Takes NFP cache buffer as f32, config, input nodes, and area
+    /// Returns serialized buffer with header + NFP cache + rotated nodes as bytes
     pub fn generate_placement_data(
-        nfp_buffer: &[u8],
+        nfp_buffer_f32: &[f32],
         config: u32,
         input_nodes: &[PolygonNode],
         area: f32,
     ) -> Vec<u8> {
-        let buffer_size = nfp_buffer.len();
+        let buffer_size = nfp_buffer_f32.len() * std::mem::size_of::<f32>();
         let nodes = PolygonNode::rotate_nodes(input_nodes);
 
         // Serialize nodes as f32
@@ -196,8 +197,11 @@ impl NFPStore {
         buffer[8..12].copy_from_slice(&area.to_be_bytes());
         buffer[12..16].copy_from_slice(&(buffer_size as u32).to_be_bytes());
 
-        // Copy NFP cache buffer
-        buffer[16..16 + buffer_size].copy_from_slice(nfp_buffer);
+        // Copy NFP cache buffer as bytes
+        let nfp_bytes = unsafe {
+            std::slice::from_raw_parts(nfp_buffer_f32.as_ptr() as *const u8, buffer_size)
+        };
+        buffer[16..16 + buffer_size].copy_from_slice(nfp_bytes);
 
         // Copy serialized nodes as f32 at the end
         let nodes_bytes =
@@ -207,29 +211,25 @@ impl NFPStore {
         buffer
     }
 
-    fn serialize_map_to_buffer(map: &HashMap<u32, Vec<u8>>) -> Vec<u8> {
-        // Calculate total size
+    fn serialize_map_to_f32(map: &HashMap<u32, Vec<f32>>) -> Vec<f32> {
+        // Calculate total size in f32 elements: 2 per entry (key + length) + data
         let total_size: usize = map
             .values()
-            .map(|buffer| 8 + buffer.len()) // 8 = 2 * u32 (key + length)
+            .map(|buffer| 2 + buffer.len()) // 2 f32 elements for key + length
             .sum();
 
-        let mut result = vec![0u8; total_size];
-        let mut offset = 0;
+        let mut result = Vec::with_capacity(total_size);
 
         for (key, buffer) in map.iter() {
-            // Write key in big-endian to match TypeScript DataView default
-            result[offset..offset + 4].copy_from_slice(&key.to_be_bytes());
-            offset += 4;
+            // Write key as f32 (reinterpreted from u32) in big-endian
+            result.push(f32::from_bits(key.swap_bytes()));
 
-            // Write length in big-endian to match TypeScript DataView default
+            // Write length as f32 (reinterpreted from u32) in big-endian
             let length = buffer.len() as u32;
-            result[offset..offset + 4].copy_from_slice(&length.to_be_bytes());
-            offset += 4;
+            result.push(f32::from_bits(length.swap_bytes()));
 
-            // Write buffer data
-            result[offset..offset + buffer.len()].copy_from_slice(buffer);
-            offset += buffer.len();
+            // Write buffer data directly as f32
+            result.extend_from_slice(buffer);
         }
 
         result
