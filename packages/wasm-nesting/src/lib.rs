@@ -495,11 +495,16 @@ pub fn nfp_generate_placement_data(
     // Deserialize nodes directly from f32 array
     let nodes = PolygonNode::deserialize(nodes_data, 0);
 
-    // Generate placement data
-    let placement_data = NFPStore::generate_placement_data(nfp_buffer, config, &nodes, area);
+    // Generate placement data as f32
+    let placement_data_f32 = NFPStore::generate_placement_data(nfp_buffer, config, &nodes, area);
+
+    // Convert to bytes for Uint8Array
+    let byte_len = placement_data_f32.len() * std::mem::size_of::<f32>();
+    let bytes =
+        unsafe { std::slice::from_raw_parts(placement_data_f32.as_ptr() as *const u8, byte_len) };
 
     // Return as Uint8Array
-    let out = Uint8Array::new_with_length(placement_data.len() as u32);
-    out.copy_from(&placement_data);
+    let out = Uint8Array::new_with_length(byte_len as u32);
+    out.copy_from(bytes);
     out
 }

@@ -127,7 +127,14 @@ impl NFPStore {
             .map(|&source| input_nodes[source as usize].clone())
             .collect();
 
-        Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area)
+        let f32_buffer =
+            Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area);
+
+        // Convert f32 buffer to bytes
+        let byte_len = f32_buffer.len() * std::mem::size_of::<f32>();
+        let bytes =
+            unsafe { std::slice::from_raw_parts(f32_buffer.as_ptr() as *const u8, byte_len) };
+        bytes.to_vec()
     }
 
     pub fn nfp_pairs(&self) -> &[Vec<f32>] {
@@ -173,40 +180,35 @@ impl NFPStore {
     /// Generate placement data for genetic algorithm
     ///
     /// Takes NFP cache buffer as f32, config, input nodes, and area
-    /// Returns serialized buffer with header + NFP cache + rotated nodes as bytes
+    /// Returns serialized buffer with header + NFP cache + rotated nodes as f32
     pub fn generate_placement_data(
         nfp_buffer_f32: &[f32],
         config: u32,
         input_nodes: &[PolygonNode],
         area: f32,
-    ) -> Vec<u8> {
-        let buffer_size = nfp_buffer_f32.len() * std::mem::size_of::<f32>();
+    ) -> Vec<f32> {
         let nodes = PolygonNode::rotate_nodes(input_nodes);
 
         // Serialize nodes as f32
         let nodes_f32 = PolygonNode::serialize_f32(&nodes, 0);
-        let nodes_bytes_len = nodes_f32.len() * std::mem::size_of::<f32>();
 
-        let header_size = 16; // 4 * u32
-        let total_size = header_size + buffer_size + nodes_bytes_len;
-        let mut buffer = vec![0u8; total_size];
+        // Calculate total size: 4 header f32 elements + NFP buffer + nodes
+        let total_size = 4 + nfp_buffer_f32.len() + nodes_f32.len();
+        let mut buffer = Vec::with_capacity(total_size);
 
-        // Write header in big-endian to match TypeScript DataView default
-        buffer[0..4].copy_from_slice(&THREAD_TYPE_PLACEMENT.to_be_bytes());
-        buffer[4..8].copy_from_slice(&config.to_be_bytes());
-        buffer[8..12].copy_from_slice(&area.to_be_bytes());
-        buffer[12..16].copy_from_slice(&(buffer_size as u32).to_be_bytes());
+        // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
+        buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT.swap_bytes()));
+        buffer.push(f32::from_bits(config.swap_bytes()));
+        buffer.push(f32::from_bits(area.to_bits().swap_bytes()));
+        // Write buffer size in bytes (not f32 count) to match PlaceContent::init expectations
+        let buffer_size_bytes = (nfp_buffer_f32.len() * std::mem::size_of::<f32>()) as u32;
+        buffer.push(f32::from_bits(buffer_size_bytes.swap_bytes()));
 
-        // Copy NFP cache buffer as bytes
-        let nfp_bytes = unsafe {
-            std::slice::from_raw_parts(nfp_buffer_f32.as_ptr() as *const u8, buffer_size)
-        };
-        buffer[16..16 + buffer_size].copy_from_slice(nfp_bytes);
+        // Append NFP cache buffer directly as f32
+        buffer.extend_from_slice(nfp_buffer_f32);
 
-        // Copy serialized nodes as f32 at the end
-        let nodes_bytes =
-            unsafe { std::slice::from_raw_parts(nodes_f32.as_ptr() as *const u8, nodes_bytes_len) };
-        buffer[16 + buffer_size..].copy_from_slice(nodes_bytes);
+        // Append serialized nodes as f32
+        buffer.extend_from_slice(&nodes_f32);
 
         buffer
     }
