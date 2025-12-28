@@ -46,6 +46,8 @@ export default class NFPStore {
         const sourcesArray = new Int32Array(sources);
         const rotationsArray = new Uint16Array(rotations);
 
+        console.log(rotationsArray, rotations);
+
         // Call WASM
         nfp_store_init(nodesFloat32, configSerialized, phenotypeSource, sourcesArray, rotationsArray);
     }

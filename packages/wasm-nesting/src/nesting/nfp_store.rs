@@ -81,8 +81,8 @@ impl NFPStore {
                 if nfp.len() > 4 {
                     // 4 = 2 * f32 elements (2 floats for header minimum)
                     // A null nfp means the nfp could not be generated
-                    // Extract key from first f32 (reinterpreted as u32) in big-endian
-                    let key = nfp[0].to_bits().swap_bytes();
+                    // Extract key from first f32 (reinterpreted as u32) in little-endian to match TypeScript
+                    let key = nfp[0].to_bits();
                     self.nfp_cache.insert(key, nfp);
                 }
             }
@@ -220,8 +220,14 @@ impl NFPStore {
 
         let mut result = Vec::with_capacity(total_size);
 
-        for (key, buffer) in map.iter() {
-            // Write key as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView
+        // Sort keys to ensure consistent order
+        let mut sorted_keys: Vec<&u32> = map.keys().collect();
+        sorted_keys.sort();
+
+        for key in sorted_keys {
+            let buffer = &map[key];
+
+            // Write key as f32 (reinterpreted from u32) in big-endian to match how keys are stored in cache
             result.push(f32::from_bits(key.swap_bytes()));
 
             // Write length in bytes as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView

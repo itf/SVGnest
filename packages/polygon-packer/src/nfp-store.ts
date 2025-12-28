@@ -1,7 +1,6 @@
 import { nfp_generate_pair, nfp_generate_placement_data } from 'wasm-nesting';
-import { NFPCache, NestConfig, i32, u16, u32, u8, usize, f32 } from './types';
+import { NFPCache, i32, u16, u32, u8, usize, f32 } from './types';
 import PolygonNode from './polygon-node';
-import { serializeConfig } from './helpers';
 
 export default class NFPStore {
     #nfpCache: NFPCache = new Map<u32, Float32Array>();
@@ -9,8 +8,6 @@ export default class NFPStore {
     #nfpPairs: Float32Array[] = [];
 
     #sources: i32[] = [];
-
-    #phenotypeSource: u16 = 0;
 
     #angleSplit: u8 = 0;
 
@@ -28,28 +25,11 @@ export default class NFPStore {
         return NFPStore.#instance;
     }
 
-    public init(nodes: PolygonNode[], binNode: PolygonNode, config: NestConfig, phenotypeSource: u16, sources: i32[], rotations: u16[]): void {
-        this.#configCompressed = serializeConfig(config);
-        this.#phenotypeSource = phenotypeSource;
-        this.#sources = sources.slice();
-        this.#angleSplit = config.rotations;
-        this.#nfpPairs = [];
-
-        const newCache: NFPCache = new Map<u32, Float32Array>();
-
-        for (let i = 0; i < this.#sources.length; ++i) {
-            const node = nodes[this.#sources[i]];
+    public init(nodes: PolygonNode[], sources: i32[], rotations: u16[]): void {
+        for (let i = 0; i < sources.length; ++i) {
+            const node = nodes[sources[i]];
             node.rotation = rotations[i];
-
-            this.updateCache(binNode, node, true, newCache);
-
-            for (let j = 0; j < i; ++j) {
-                this.updateCache(nodes[sources[j]], node, false, newCache);
-            }
         }
-
-        // only keep cache for one cycle
-        this.#nfpCache = newCache;
     }
 
     public update(nfps: Float32Array[]): void {
@@ -95,22 +75,6 @@ export default class NFPStore {
         const inputNodesArray = this.#sources.map(source => inputNodes[source]);
 
         return NFPStore.generatePlacementData(this.nfpBuffer, this.#configCompressed, inputNodesArray, area);
-    }
-
-    public get nfpPairs(): Float32Array[] {
-        return this.#nfpPairs;
-    }
-
-    public get nfpPairsCount(): usize {
-        return this.#nfpPairs.length;
-    }
-
-    public get placementCount(): usize {
-        return this.#sources.length;
-    }
-
-    public get phenotypeSource(): u16 {
-        return this.#phenotypeSource;
     }
 
     public get nfpBuffer(): Float32Array {

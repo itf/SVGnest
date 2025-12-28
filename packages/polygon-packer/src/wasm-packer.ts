@@ -1,6 +1,6 @@
 import { get_u16_from_u32, abs_polygon_area } from 'wasm-nesting';
 import GeneticAlgorithm from './genetic-algorithm';
-import NFPStore from './nfp-store';
+import NFPStore from './nfp-store-wasm';
 import { f32, NestConfig, SourceItem } from './types';
 import { readUint32FromF32, generateTree, generateBounds, deserializeConfig } from './helpers';
 import { BoundRectF32 } from './geometry';
@@ -51,7 +51,20 @@ export default class WasmPacker {
 
     public getPairs(): Float32Array {
         const individual = GeneticAlgorithm.instance.getIndividual(this.#nodes);
-        NFPStore.instance.init(this.#nodes, this.#binNode, this.#config, individual.source, individual.placement, individual.rotation);
+
+        for (let i = 0; i < individual.placement.length; ++i) {
+            const node = this.#nodes[individual.placement[i]];
+            node.rotation = individual.rotation[i];
+        }
+
+        NFPStore.instance.init(
+            this.#nodes,
+            this.#binNode,
+            this.#config,
+            individual.source,
+            individual.placement,
+            individual.rotation
+        );
 
         const pairs = NFPStore.instance.nfpPairs;
 

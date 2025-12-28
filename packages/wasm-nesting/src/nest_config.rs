@@ -41,24 +41,24 @@ impl NestConfig {
         result = set_bits(
             result,
             (self.curve_tolerance * 10.0) as u16,
-            NEST_BITS[0],
+            NEST_OFFSETS[0],
             NEST_BITS[0],
         );
-        result = set_bits(result, self.spacing as u16, NEST_BITS[1], NEST_BITS[1]);
-        result = set_bits(result, self.rotations as u16, NEST_BITS[2], NEST_BITS[2]);
+        result = set_bits(result, self.spacing as u16, NEST_OFFSETS[1], NEST_BITS[1]);
+        result = set_bits(result, self.rotations as u16, NEST_OFFSETS[2], NEST_BITS[2]);
         result = set_bits(
             result,
             self.population_size as u16,
-            NEST_BITS[3],
+            NEST_OFFSETS[3],
             NEST_BITS[3],
         );
         result = set_bits(
             result,
             self.mutation_rate as u16,
-            NEST_BITS[4],
+            NEST_OFFSETS[4],
             NEST_BITS[4],
         );
-        result = set_bits(result, self.use_holes as u16, NEST_BITS[5], NEST_BITS[5]);
+        result = set_bits(result, self.use_holes as u16, NEST_OFFSETS[5], NEST_BITS[5]);
 
         return result;
     }
