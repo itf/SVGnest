@@ -8,7 +8,59 @@ pub struct PolygonNode {
 }
 
 impl PolygonNode {
-    pub fn deserialize_nodes(
+    /// Create a new PolygonNode from source, rotation, and memory segment
+    pub fn new(source: i32, rotation: f32, mem_seg: Vec<f32>) -> Self {
+        let seg_size = mem_seg.len();
+        PolygonNode {
+            source,
+            rotation,
+            seg_size,
+            mem_seg: mem_seg.into_boxed_slice(),
+            children: Vec::new(),
+        }
+    }
+    /// Deserialize PolygonNodes from f32 buffer
+    ///
+    /// Reads node count from buffer[offset] and deserializes that many nodes
+    /// starting from buffer[offset + 1]
+    ///
+    /// Arguments:
+    /// - buffer: f32 buffer containing serialized node data
+    /// - offset: Position where node count is stored
+    ///
+    /// Returns: Vector of deserialized PolygonNodes
+    pub fn deserialize(buffer: &[f32], offset: usize) -> Vec<PolygonNode> {
+        if buffer.len() <= offset {
+            return Vec::new();
+        }
+
+        // Read node count (big-endian u32, matching TypeScript DataView)
+        let root_count = buffer[offset].to_bits().swap_bytes() as usize;
+
+        if root_count == 0 {
+            return Vec::new();
+        }
+
+        let (nodes, _) = Self::deserialize_inner(buffer, offset + 1, root_count);
+        nodes
+    }
+
+    pub fn serialize(nodes: &[PolygonNode], offset: usize) -> Vec<u8> {
+        let initial_offset = std::mem::size_of::<u32>() + offset;
+        let total_size = Self::calculate_total_size(nodes, initial_offset);
+        let mut buffer = vec![0u8; total_size];
+
+        // Write node count at offset
+        let node_count = nodes.len() as u32;
+        let count_bytes = node_count.to_le_bytes();
+        buffer[offset..offset + 4].copy_from_slice(&count_bytes);
+
+        Self::serialize_internal(nodes, &mut buffer, initial_offset);
+
+        buffer
+    }
+
+    fn deserialize_inner(
         buffer: &[f32],
         mut idx: usize,
         count: usize,
@@ -33,7 +85,7 @@ impl PolygonNode {
             let child_count = buffer[idx].to_bits().swap_bytes() as usize;
             idx += 1;
 
-            let (children, new_idx) = Self::deserialize_nodes(buffer, idx, child_count);
+            let (children, new_idx) = Self::deserialize_inner(buffer, idx, child_count);
             idx = new_idx;
 
             nodes.push(PolygonNode {
@@ -57,7 +109,7 @@ impl PolygonNode {
         })
     }
 
-    fn serialize_nodes_internal(nodes: &[PolygonNode], buffer: &mut [u8], offset: usize) -> usize {
+    fn serialize_internal(nodes: &[PolygonNode], buffer: &mut [u8], offset: usize) -> usize {
         nodes.iter().fold(offset, |mut result, node| {
             // Write source (u32)
             let source_bytes = ((node.source + 1) as u32).to_le_bytes();
@@ -92,158 +144,62 @@ impl PolygonNode {
             result += std::mem::size_of::<u32>();
 
             // Recursively serialize children
-            Self::serialize_nodes_internal(&node.children, buffer, result)
+            Self::serialize_internal(&node.children, buffer, result)
         })
     }
 
-    pub fn serialize_nodes(nodes: &[PolygonNode], offset: usize) -> Vec<u8> {
-        let initial_offset = std::mem::size_of::<u32>() + offset;
-        let total_size = Self::calculate_total_size(nodes, initial_offset);
-        let mut buffer = vec![0u8; total_size];
+    /// Serialize nodes to Vec<f32> format (for Float32Array)
+    /// Only the root node count uses big-endian (swap_bytes), all other values are native format
+    pub fn serialize_f32(nodes: &[PolygonNode], offset: usize) -> Vec<f32> {
+        // Calculate total f32 count needed
+        let total_count = Self::calculate_total_f32_count(nodes, offset + 1);
+        let mut buffer = vec![0.0f32; total_count];
 
-        // Write node count at offset
+        // Write node count as f32 with big-endian (swap_bytes) - only for root level
         let node_count = nodes.len() as u32;
-        let count_bytes = node_count.to_le_bytes();
-        buffer[offset..offset + 4].copy_from_slice(&count_bytes);
+        buffer[offset] = f32::from_bits(node_count.swap_bytes());
 
-        Self::serialize_nodes_internal(nodes, &mut buffer, initial_offset);
-
+        // Serialize nodes starting after the count
+        Self::serialize_f32_internal(nodes, &mut buffer, offset + 1);
         buffer
     }
 
-    /// Create a new PolygonNode from source, rotation, and memory segment
-    pub fn new(source: i32, rotation: f32, mem_seg: Vec<f32>) -> Self {
-        let seg_size = mem_seg.len();
-        PolygonNode {
-            source,
-            rotation,
-            seg_size,
-            mem_seg: mem_seg.into_boxed_slice(),
-            children: Vec::new(),
-        }
+    fn serialize_f32_internal(nodes: &[PolygonNode], buffer: &mut [f32], offset: usize) -> usize {
+        nodes.iter().fold(offset, |mut result, node| {
+            // Write source as f32 (reinterpreting u32 bits) - big-endian to match deserialize
+            buffer[result] = f32::from_bits(((node.source + 1) as u32).swap_bytes());
+            result += 1;
+
+            // Write rotation - big-endian to match deserialize
+            buffer[result] = f32::from_bits(node.rotation.to_bits().swap_bytes());
+            result += 1;
+
+            // Write mem_seg length as f32 (number of points) - big-endian to match deserialize
+            let mem_seg_length = ((node.mem_seg.len() >> 1) as u32).swap_bytes();
+            buffer[result] = f32::from_bits(mem_seg_length);
+            result += 1;
+
+            // Write mem_seg data directly (coordinate data in native format)
+            buffer[result..result + node.mem_seg.len()].copy_from_slice(&node.mem_seg);
+            result += node.mem_seg.len();
+
+            // Write children count as f32 - big-endian to match deserialize
+            buffer[result] = f32::from_bits((node.children.len() as u32).swap_bytes());
+            result += 1;
+
+            // Recursively serialize children
+            Self::serialize_f32_internal(&node.children, buffer, result)
+        })
     }
 
-    /// Serialize a vector of PolygonNodes to a byte buffer
-    pub fn serialize(nodes: &[PolygonNode], offset: usize) -> Vec<u8> {
-        Self::serialize_nodes(nodes, offset)
-    }
-
-    /// Deserialize PolygonNodes from a byte buffer
-    pub fn deserialize(buffer: &[u8], offset: usize) -> Vec<PolygonNode> {
-        if buffer.len() < offset + 4 {
-            return Vec::new();
-        }
-
-        // Read node count from byte buffer (little-endian u32)
-        let count_bytes = [
-            buffer[offset],
-            buffer[offset + 1],
-            buffer[offset + 2],
-            buffer[offset + 3],
-        ];
-        let root_count = u32::from_le_bytes(count_bytes) as usize;
-
-        if root_count == 0 {
-            return Vec::new();
-        }
-
-        // Deserialize nodes
-        Self::deserialize_nodes_from_bytes(buffer, offset + 4, root_count).0
-    }
-
-    /// Deserialize nodes directly from byte buffer
-    /// Matches TypeScript WorkerContent.deserializeNodes (DataView big-endian)
-    fn deserialize_nodes_from_bytes(
-        buffer: &[u8],
-        mut idx: usize,
-        count: usize,
-    ) -> (Vec<PolygonNode>, usize) {
-        let mut nodes = Vec::with_capacity(count);
-
-        for _ in 0..count {
-            if idx + 12 > buffer.len() {
-                break; // Not enough data
-            }
-
-            // Read source (u32, big-endian, matching TypeScript DataView) - subtract 1
-            let source_bytes = [
-                buffer[idx],
-                buffer[idx + 1],
-                buffer[idx + 2],
-                buffer[idx + 3],
-            ];
-            let source = u32::from_be_bytes(source_bytes).wrapping_sub(1) as i32;
-            idx += 4;
-
-            // Read rotation (f32, big-endian, matching TypeScript DataView)
-            let rotation_bytes = [
-                buffer[idx],
-                buffer[idx + 1],
-                buffer[idx + 2],
-                buffer[idx + 3],
-            ];
-            let rotation = f32::from_be_bytes(rotation_bytes);
-            idx += 4;
-
-            // Read mem_seg length (u32, big-endian) - number of points
-            let seg_len_bytes = [
-                buffer[idx],
-                buffer[idx + 1],
-                buffer[idx + 2],
-                buffer[idx + 3],
-            ];
-            let point_count = u32::from_be_bytes(seg_len_bytes) as usize;
-            let seg_size = point_count << 1; // Convert to number of floats
-            idx += 4;
-
-            // Read mem_seg data (Float32Array is created from buffer, so native endian)
-            // But the buffer was written by TypeScript which uses system endian for typed arrays
-            // Since x86/ARM are little-endian, Float32Array data is little-endian
-            if idx + seg_size * 4 > buffer.len() {
-                break; // Not enough data
-            }
-
-            let mut mem_seg = Vec::with_capacity(seg_size);
-            for _ in 0..seg_size {
-                let f32_bytes = [
-                    buffer[idx],
-                    buffer[idx + 1],
-                    buffer[idx + 2],
-                    buffer[idx + 3],
-                ];
-                // Float32Array data is little-endian (native byte order on x86/ARM)
-                mem_seg.push(f32::from_le_bytes(f32_bytes));
-                idx += 4;
-            }
-
-            if idx + 4 > buffer.len() {
-                break; // Not enough data for child count
-            }
-
-            // Read children count (u32, big-endian, matching TypeScript DataView)
-            let child_count_bytes = [
-                buffer[idx],
-                buffer[idx + 1],
-                buffer[idx + 2],
-                buffer[idx + 3],
-            ];
-            let child_count = u32::from_be_bytes(child_count_bytes) as usize;
-            idx += 4;
-
-            // Recursively deserialize children
-            let (children, new_idx) = Self::deserialize_nodes_from_bytes(buffer, idx, child_count);
-            idx = new_idx;
-
-            nodes.push(PolygonNode {
-                source,
-                seg_size,
-                rotation,
-                mem_seg: mem_seg.into_boxed_slice(),
-                children,
-            });
-        }
-
-        (nodes, idx)
+    fn calculate_total_f32_count(nodes: &[PolygonNode], initial_count: usize) -> usize {
+        nodes.iter().fold(initial_count, |result, node| {
+            // 4 f32 values for: source, rotation, mem_seg_length, children_count
+            // + mem_seg.len() f32 values for the polygon data
+            let node_count = 4 + node.mem_seg.len();
+            let new_result = result + node_count;
+            Self::calculate_total_f32_count(&node.children, new_result)
+        })
     }
 
     /// Generate NFP cache key from two polygon nodes
@@ -283,5 +239,48 @@ impl PolygonNode {
         let step = ROTATION_STEP / split;
         let index = (rotation / step).round() as i32;
         ((index % rotation_split as i32 + rotation_split as i32) % rotation_split as i32) as u32
+    }
+
+    /// Rotate multiple polygon nodes
+    ///
+    /// Clones the nodes and applies rotation to each node and its children
+    pub fn rotate_nodes(nodes: &[PolygonNode]) -> Vec<PolygonNode> {
+        let mut result = Self::clone_nodes(nodes);
+
+        for node in result.iter_mut() {
+            let rotation = node.rotation;
+            Self::rotate_node(node, rotation);
+        }
+
+        result
+    }
+
+    /// Rotate a single polygon node and all its children
+    fn rotate_node(root_node: &mut PolygonNode, rotation: f32) {
+        use crate::utils::number::Number;
+
+        // Rotate the polygon's memory segment
+        let mut mem_seg = root_node.mem_seg.to_vec();
+        f32::rotate_polygon(&mut mem_seg, rotation);
+        root_node.mem_seg = mem_seg.into_boxed_slice();
+
+        // Recursively rotate children
+        for child in root_node.children.iter_mut() {
+            Self::rotate_node(child, rotation);
+        }
+    }
+
+    /// Deep clone a slice of polygon nodes
+    fn clone_nodes(nodes: &[PolygonNode]) -> Vec<PolygonNode> {
+        nodes
+            .iter()
+            .map(|node| PolygonNode {
+                source: node.source,
+                rotation: node.rotation,
+                seg_size: node.seg_size,
+                mem_seg: node.mem_seg.clone(),
+                children: Self::clone_nodes(&node.children),
+            })
+            .collect()
     }
 }
