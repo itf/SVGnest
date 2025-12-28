@@ -18,11 +18,6 @@ pub fn set_bits_u32(source: u32, value: u16, index: u8, bit_count: u8) -> u32 {
     set_bits(source, value, index, bit_count)
 }
 
-#[wasm_bindgen]
-pub fn get_u16_from_u32(source: u32, index: u8) -> u16 {
-    get_u16(source, index)
-}
-
 /// WASM wrapper for calculate function
 ///
 /// Main calculation function that routes to either pair_data or place_paths
