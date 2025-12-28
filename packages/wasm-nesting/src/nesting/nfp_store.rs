@@ -117,6 +117,7 @@ impl NFPStore {
         self.nfp_cache.clear();
         self.nfp_pairs.clear();
         self.sources.clear();
+        self.rotations.clear();
         self.phenotype_source = 0;
         self.angle_split = 0;
         self.config_compressed = 0;

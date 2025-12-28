@@ -52,6 +52,11 @@ export default class WasmPacker {
     public getPairs(): Float32Array {
         const individual = GeneticAlgorithm.instance.getIndividual(this.#nodes);
 
+        for (let i = 0; i < individual.placement.length; ++i) {
+            const node = this.#nodes[individual.placement[i]];
+            node.rotation = individual.rotation[i];
+        }
+
         NFPStore.instance.init(
             this.#nodes,
             this.#binNode,
