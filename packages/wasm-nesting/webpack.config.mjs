@@ -7,24 +7,27 @@ export default {
         filename: 'wasm-nesting.js',
         library: {
             name: 'WasmNesting',
-            type: 'umd',
+            type: 'umd'
         },
-        globalObject: 'self', // Use 'self' for Web Worker compatibility
+        globalObject: 'self' // Use 'self' for Web Worker compatibility
     },
     target: 'webworker', // Ensure compatibility with Web Workers
     mode: 'production',
     resolve: {
-        extensions: ['.js', '.wasm'],
+        extensions: ['.js', '.wasm']
     },
     module: {
         rules: [
             {
                 test: /\.wasm$/,
                 type: 'asset/resource',
-            },
-        ],
+                generator: {
+                    filename: 'wasm-nesting.wasm'
+                }
+            }
+        ]
     },
     experiments: {
-        asyncWebAssembly: true,
-    },
+        asyncWebAssembly: true
+    }
 };
