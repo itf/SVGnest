@@ -1,4 +1,4 @@
-use crate::{nest_config::NestConfig, nesting::polygon_node::PolygonNode, utils::number::Number};
+use crate::{nest_config::NestConfig, nesting::polygon_node::PolygonNode};
 use std::cell::RefCell;
 use std::collections::HashMap;
 

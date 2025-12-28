@@ -1,4 +1,4 @@
-import { serializeConfig } from './helpers';
+import { set_bits_u32 } from 'wasm-nesting';
 import { Parallel } from './parallel';
 import PlacementWrapper from './placement-wrapper';
 import { DisplayCallback, f32, NestConfig, u16, u32, usize } from './types';
@@ -37,7 +37,7 @@ export default class PolygonPacker {
             }
         }
 
-        WasmPacker.instance.init(serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
+        WasmPacker.instance.init(PolygonPacker.serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
         this.#isWorking = true;
 
         this.launchWorkers(displayCallback);
@@ -127,5 +127,19 @@ export default class PolygonPacker {
         }
 
         return pairs;
+    }
+
+    private static serializeConfig(config: NestConfig): number {
+        let result: number = 0;
+    
+        // Кодуємо значення в число
+        result = set_bits_u32(result, config.curveTolerance * 10, 0, 4);
+        result = set_bits_u32(result, config.spacing, 4, 5);
+        result = set_bits_u32(result, config.rotations, 9, 5);
+        result = set_bits_u32(result, config.populationSize, 14, 7);
+        result = set_bits_u32(result, config.mutationRate, 21, 7);
+        result = set_bits_u32(result, Number(config.useHoles), 28, 1);
+    
+        return result;
     }
 }

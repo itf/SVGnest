@@ -5,6 +5,7 @@ use crate::{
     nesting::{nfp_store::NFPStore, polygon_node::PolygonNode},
     utils::{bit_ops::get_u16, number::Number},
 };
+use std::cell::RefCell;
 
 pub struct WasmPacker {
     bin_node: Option<PolygonNode>,
@@ -16,8 +17,13 @@ pub struct WasmPacker {
     config: NestConfig,
 }
 
+// Singleton instance using thread_local
+thread_local! {
+    static INSTANCE: RefCell<WasmPacker> = RefCell::new(WasmPacker::new());
+}
+
 impl WasmPacker {
-    pub fn new() -> Self {
+    fn new() -> Self {
         WasmPacker {
             bin_node: None,
             bin_area: 0.0,
@@ -27,6 +33,14 @@ impl WasmPacker {
             nodes: Vec::new(),
             config: NestConfig::new(),
         }
+    }
+
+    /// Access the singleton instance
+    pub fn with_instance<F, R>(f: F) -> R
+    where
+        F: FnOnce(&mut WasmPacker) -> R,
+    {
+        INSTANCE.with(|instance| f(&mut instance.borrow_mut()))
     }
 
     pub fn init(&mut self, configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
@@ -77,6 +91,12 @@ impl WasmPacker {
     pub fn get_pairs(&mut self) -> Vec<u8> {
         let individual = GeneticAlgorithm::with_instance(|ga| ga.get_individual(&self.nodes))
             .expect("Failed to get individual");
+
+        // Update node rotations from individual
+        for i in 0..individual.placement().len() {
+            let node_index = individual.placement()[i] as usize;
+            self.nodes[node_index].rotation = individual.rotation()[i] as f32;
+        }
 
         NFPStore::with_instance(|nfp_store| {
             nfp_store.init(
@@ -131,13 +151,13 @@ impl WasmPacker {
         bytes.to_vec()
     }
 
-    pub fn get_placement_result(&mut self, placements: Vec<Vec<u8>>) -> Vec<u8> {
+    pub fn get_placement_result(&mut self, placements: Vec<Vec<f32>>) -> Vec<u8> {
         if placements.is_empty() {
             return Vec::new();
         }
 
-        // Convert first placement to f32 slice
-        let mut placements_data = Self::bytes_to_f32_vec(&placements[0]);
+        // Use first placement as initial best
+        let mut placements_data = placements[0].clone();
 
         let phenotype_source = NFPStore::with_instance(|nfp_store| nfp_store.phenotype_source());
         GeneticAlgorithm::with_instance(|ga| {
@@ -146,9 +166,8 @@ impl WasmPacker {
 
         // Find best placement
         for i in 1..placements.len() {
-            let current_placement = Self::bytes_to_f32_vec(&placements[i]);
-            if current_placement[0] < placements_data[0] {
-                placements_data = current_placement;
+            if placements[i][0] < placements_data[0] {
+                placements_data = placements[i].clone();
             }
         }
 
@@ -217,21 +236,6 @@ impl WasmPacker {
 
     pub fn pair_count(&self) -> usize {
         NFPStore::with_instance(|nfp_store| nfp_store.nfp_pairs_count())
-    }
-
-    // Helper functions
-
-    fn bytes_to_f32_vec(bytes: &[u8]) -> Vec<f32> {
-        let len = bytes.len() / 4;
-        let mut result = vec![0f32; len];
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                result.as_mut_ptr() as *mut u8,
-                bytes.len(),
-            );
-        }
-        result
     }
 
     fn read_uint32_from_f32(data: &[f32], index: usize) -> u32 {

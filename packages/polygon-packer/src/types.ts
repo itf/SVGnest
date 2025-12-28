@@ -14,22 +14,6 @@ export enum THREAD_TYPE {
 
 export type NFPCache = Map<number, Float32Array>;
 
-export interface BoundRect<T extends TypedArray> {
-    clone(): BoundRect<T>;
-
-    from(rect: BoundRect<T>): void;
-
-    clean(): void;
-
-    readonly x: number;
-
-    readonly y: number;
-
-    readonly width: number;
-
-    readonly height: number;
-}
-
 export type SourceItem = {
     source: u16;
     children: SourceItem[];
@@ -50,18 +34,7 @@ export interface IPlacementWrapper {
 
 export type DisplayCallback = (placementWrapper: IPlacementWrapper) => void;
 
-export type PolygonNode = {
-    source: number;
-    rotation: number;
-    memSeg: Float32Array;
-    children: PolygonNode[];
-};
-
 export type FlattenedData = { sources: number[]; holes: number[] };
-
-export type CalculateConfig = { pointPool: unknown; isInit: boolean };
-
-export type TypedArray = Float32Array | Float64Array | Uint16Array | Uint8Array | Uint32Array | Int16Array | Int8Array | Int32Array;
 
 export type f32 = number;
 

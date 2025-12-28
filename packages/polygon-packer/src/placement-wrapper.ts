@@ -1,4 +1,3 @@
-import { readUint32FromF32 } from './helpers';
 import { IPlacementWrapper, SourceItem, FlattenedData } from './types';
 
 export default class PlacementWrapper implements IPlacementWrapper {
@@ -40,13 +39,13 @@ export default class PlacementWrapper implements IPlacementWrapper {
     }
 
     public bindPlacement(index: number): void {
-        this.#placement = readUint32FromF32(this.#memSeg, 2 + index);
+        this.#placement = PlacementWrapper.readUint32FromF32(this.#memSeg, 2 + index);
         this.#offset = this.#placement >>> 16;
         this.#size = this.#placement & ((1 << 16) - 1);
     }
 
     public bindData(index: number): number {
-        this.#pointData = readUint32FromF32(this.#memSeg, this.#offset + index);
+        this.#pointData = PlacementWrapper.readUint32FromF32(this.#memSeg, this.#offset + index);
         this.#pointOffset = this.#offset + this.#size + (index << 1);
 
         return this.#sources[this.id].source;
@@ -54,7 +53,7 @@ export default class PlacementWrapper implements IPlacementWrapper {
 
     public get flattnedChildren(): FlattenedData | null {
         const source = this.#sources[this.id];
-        
+
         return source.children.length ? PlacementWrapper.flattenTree(source.children, true) : null;
     }
 
@@ -238,5 +237,16 @@ export default class PlacementWrapper implements IPlacementWrapper {
         }
 
         return result;
+    }
+
+    private static getByteOffset(array: Float32Array, index: number): number {
+        return (array.byteOffset >>> 0) + index * Float32Array.BYTES_PER_ELEMENT;
+    }
+
+    private static readUint32FromF32(array: Float32Array, index: number): number {
+        const byteOffset = PlacementWrapper.getByteOffset(array, index);
+        const view = new DataView(array.buffer);
+
+        return view.getUint32(byteOffset, true);
     }
 }
