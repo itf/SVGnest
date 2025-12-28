@@ -10,6 +10,7 @@ pub struct NFPStore {
     nfp_cache: HashMap<u32, Vec<f32>>,
     nfp_pairs: Vec<Vec<f32>>,
     sources: Vec<i32>,
+    rotations: Vec<u16>,
     phenotype_source: u16,
     angle_split: u8,
     config_compressed: u32,
@@ -26,6 +27,7 @@ impl NFPStore {
             nfp_cache: HashMap::new(),
             nfp_pairs: Vec::new(),
             sources: Vec::new(),
+            rotations: Vec::new(),
             phenotype_source: 0,
             angle_split: 0,
             config_compressed: 0,
@@ -52,6 +54,7 @@ impl NFPStore {
         self.config_compressed = config.serialize();
         self.phenotype_source = phenotype_source;
         self.sources = sources.to_vec();
+        self.rotations = rotations.to_vec();
         self.angle_split = config.rotations;
         self.nfp_pairs.clear();
 
@@ -59,7 +62,7 @@ impl NFPStore {
 
         for i in 0..self.sources.len() {
             let mut node = nodes[self.sources[i] as usize].clone();
-            node.rotation = rotations[i] as f32;
+            node.rotation = self.rotations[i] as f32;
 
             self.update_cache(bin_node, &node, true, &mut new_cache);
 
@@ -121,11 +124,14 @@ impl NFPStore {
 
     pub fn get_placement_data(&self, input_nodes: &[PolygonNode], area: f32) -> Vec<f32> {
         let nfp_buffer_f32 = Self::serialize_map_to_f32(&self.nfp_cache);
-        let nodes: Vec<PolygonNode> = self
-            .sources
-            .iter()
-            .map(|&source| input_nodes[source as usize].clone())
-            .collect();
+        let mut nodes: Vec<PolygonNode> = Vec::new();
+
+        for i in 0..self.sources.len() {
+            let mut node = input_nodes[self.sources[i] as usize].clone();
+            node.rotation = self.rotations[i] as f32;
+
+            nodes.push(node);
+        }
 
         Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area)
     }
