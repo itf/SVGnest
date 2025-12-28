@@ -388,9 +388,9 @@ pub fn nfp_store_clean() {
 /// - nodes_data: Float32Array containing serialized PolygonNode data
 /// - area: Bin area (f32)
 ///
-/// Returns: Uint8Array containing placement data
+/// Returns: Float32Array containing placement data
 #[wasm_bindgen]
-pub fn nfp_store_get_placement_data(nodes_data: &[f32], area: f32) -> Uint8Array {
+pub fn nfp_store_get_placement_data(nodes_data: &[f32], area: f32) -> Float32Array {
     use crate::nesting::nfp_store::NFPStore;
 
     // Deserialize nodes directly from f32 array
@@ -398,7 +398,7 @@ pub fn nfp_store_get_placement_data(nodes_data: &[f32], area: f32) -> Uint8Array
 
     let result = NFPStore::with_instance(|nfp_store| nfp_store.get_placement_data(&nodes, area));
 
-    let out = Uint8Array::new_with_length(result.len() as u32);
+    let out = Float32Array::new_with_length(result.len() as u32);
     out.copy_from(&result);
     out
 }
@@ -458,6 +458,18 @@ pub fn nfp_store_get_phenotype_source() -> u16 {
     NFPStore::with_instance(|nfp_store| nfp_store.phenotype_source())
 }
 
+/// Get serialized NFP buffer from the singleton NFPStore
+#[wasm_bindgen]
+pub fn nfp_store_get_nfp_buffer() -> Float32Array {
+    use crate::nesting::nfp_store::NFPStore;
+
+    let buffer = NFPStore::with_instance(|nfp_store| nfp_store.nfp_buffer());
+
+    let out = Float32Array::new_with_length(buffer.len() as u32);
+    out.copy_from(&buffer);
+    out
+}
+
 /// Generate pair data for NFP calculation
 ///
 /// Takes key, config, and serialized nodes (2 nodes), returns Float32Array with header and rotated nodes
@@ -481,14 +493,14 @@ pub fn nfp_generate_pair(key: u32, config: u32, nodes_data: &[f32]) -> Float32Ar
 /// Generate placement data for genetic algorithm
 ///
 /// Takes NFP cache buffer as Float32Array, config, serialized input nodes, and area
-/// Returns Uint8Array with header + NFP cache + rotated nodes
+/// Returns Float32Array with header + NFP cache + rotated nodes
 #[wasm_bindgen]
 pub fn nfp_generate_placement_data(
     nfp_buffer: &[f32],
     config: u32,
     nodes_data: &[f32],
     area: f32,
-) -> Uint8Array {
+) -> Float32Array {
     use crate::nesting::nfp_store::NFPStore;
     use crate::nesting::polygon_node::PolygonNode;
 
@@ -496,15 +508,10 @@ pub fn nfp_generate_placement_data(
     let nodes = PolygonNode::deserialize(nodes_data, 0);
 
     // Generate placement data as f32
-    let placement_data_f32 = NFPStore::generate_placement_data(nfp_buffer, config, &nodes, area);
+    let placement_data = NFPStore::generate_placement_data(nfp_buffer, config, &nodes, area);
 
-    // Convert to bytes for Uint8Array
-    let byte_len = placement_data_f32.len() * std::mem::size_of::<f32>();
-    let bytes =
-        unsafe { std::slice::from_raw_parts(placement_data_f32.as_ptr() as *const u8, byte_len) };
-
-    // Return as Uint8Array
-    let out = Uint8Array::new_with_length(byte_len as u32);
-    out.copy_from(bytes);
+    // Return as Float32Array
+    let out = Float32Array::new_with_length(placement_data.len() as u32);
+    out.copy_from(&placement_data);
     out
 }

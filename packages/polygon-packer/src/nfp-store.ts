@@ -52,19 +52,19 @@ export default class NFPStore {
         this.#nfpCache = newCache;
     }
 
-    public update(nfps: ArrayBuffer[]): void {
+    public update(nfps: Float32Array[]): void {
         const nfpCount: usize = nfps.length;
 
         if (nfpCount !== 0) {
             let view: DataView;
 
             for (let i = 0; i < nfpCount; ++i) {
-                view = new DataView(nfps[i]);
+                view = new DataView(nfps[i].buffer);
 
                 if (nfps[i].byteLength > Float64Array.BYTES_PER_ELEMENT << 1) {
                     // a null nfp means the nfp could not be generated, either because the parts simply don't
                     // fit or an error in the nfp algo
-                    this.#nfpCache.set(view.getUint32(0, true), new Float32Array(nfps[i]));
+                    this.#nfpCache.set(view.getUint32(0, true), nfps[i]);
                 }
             }
         }
@@ -91,7 +91,7 @@ export default class NFPStore {
         this.#configCompressed = 0;
     }
 
-    public getPlacementData(inputNodes: PolygonNode[], area: f32): Uint8Array {
+    public getPlacementData(inputNodes: PolygonNode[], area: f32): Float32Array {
         const inputNodesArray = this.#sources.map(source => inputNodes[source]);
 
         return NFPStore.generatePlacementData(this.nfpBuffer, this.#configCompressed, inputNodesArray, area);
@@ -126,7 +126,7 @@ export default class NFPStore {
         return nfp_generate_pair(key, config, nodesUint8);
     }
 
-    public static generatePlacementData(nfpBuffer: Float32Array, config: u32, inputNodes: PolygonNode[], area: f32): Uint8Array {
+    public static generatePlacementData(nfpBuffer: Float32Array, config: u32, inputNodes: PolygonNode[], area: f32): Float32Array {
         const serialized = PolygonNode.serialize(inputNodes);
         const nodesFloat32 = new Float32Array(serialized);
 

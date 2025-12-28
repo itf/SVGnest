@@ -119,10 +119,16 @@ impl WasmPacker {
     }
 
     pub fn get_placement_data(&mut self, generated_nfp: Vec<Vec<f32>>) -> Vec<u8> {
-        NFPStore::with_instance(|nfp_store| {
+        let f32_result = NFPStore::with_instance(|nfp_store| {
             nfp_store.update(generated_nfp);
             nfp_store.get_placement_data(&self.nodes, self.bin_area)
-        })
+        });
+
+        // Convert f32 result to bytes
+        let byte_len = f32_result.len() * std::mem::size_of::<f32>();
+        let bytes =
+            unsafe { std::slice::from_raw_parts(f32_result.as_ptr() as *const u8, byte_len) };
+        bytes.to_vec()
     }
 
     pub fn get_placement_result(&mut self, placements: Vec<Vec<u8>>) -> Vec<u8> {

@@ -80,8 +80,8 @@ export default class WasmPacker {
         return buffer;
     }
 
-    public getPlacementData(generatedNfp: ArrayBuffer[]): Uint8Array {
-        NFPStore.instance.update(generatedNfp);
+    public getPlacementData(generatedNfp: ArrayBuffer[]): Float32Array {
+        NFPStore.instance.update(generatedNfp.map(nfp => new Float32Array(nfp)));
 
         return NFPStore.instance.getPlacementData(this.#nodes, this.#binArea);
     }

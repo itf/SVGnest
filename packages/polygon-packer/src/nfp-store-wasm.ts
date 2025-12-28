@@ -6,7 +6,8 @@ import {
     nfp_store_get_nfp_pairs,
     nfp_store_get_nfp_pairs_count,
     nfp_store_get_placement_count,
-    nfp_store_get_phenotype_source
+    nfp_store_get_phenotype_source,
+    nfp_store_get_nfp_buffer
 } from 'wasm-nesting';
 import { NestConfig, i32, u16, f32, usize } from './types';
 import { serializeConfig } from './helpers';
@@ -49,43 +50,45 @@ export default class NFPStore {
         nfp_store_init(nodesFloat32, configSerialized, phenotypeSource, sourcesArray, rotationsArray);
     }
 
-    public update(nfps: ArrayBuffer[]): void {
+    public update(nfps: Float32Array[]): void {
         if (nfps.length === 0) {
             return;
         }
 
-        // Serialize NFPs: count (u32) + [size (u32) + data]...
-        let totalSize = 4; // count
+        // Serialize NFPs: count (f32) + [size (f32) + data]...
+        let totalSize = 1; // count as f32
         for (const nfp of nfps) {
-            totalSize += 4 + nfp.byteLength; // size + data
+            totalSize += 1 + nfp.length; // size (f32) + data
         }
 
-        const buffer = new ArrayBuffer(totalSize);
-        const view = new DataView(buffer);
+        const buffer = new Float32Array(totalSize);
+        const view = new DataView(buffer.buffer);
         let offset = 0;
 
-        // Write count
+        // Write count as f32 (reinterpreted from u32)
         view.setUint32(offset, nfps.length, true);
         offset += 4;
 
         // Write each NFP
         for (const nfp of nfps) {
-            view.setUint32(offset, nfp.byteLength, true);
+            // Write size as f32 (reinterpreted from u32)
+            view.setUint32(offset, nfp.length, true);
             offset += 4;
 
-            new Uint8Array(buffer, offset, nfp.byteLength).set(new Uint8Array(nfp));
-            offset += nfp.byteLength;
+            // Copy NFP data
+            new Float32Array(buffer.buffer, offset, nfp.length).set(nfp);
+            offset += nfp.length * 4;
         }
 
         // Call WASM
-        nfp_store_update(new Uint8Array(buffer));
+        nfp_store_update(buffer);
     }
 
     public clean(): void {
         nfp_store_clean();
     }
 
-    public getPlacementData(inputNodes: PolygonNode[], area: f32): Uint8Array {
+    public getPlacementData(inputNodes: PolygonNode[], area: f32): Float32Array {
         // Serialize nodes
         const serializedNodes = PolygonNode.serialize(inputNodes);
         const nodesFloat32 = new Float32Array(serializedNodes);
@@ -127,5 +130,9 @@ export default class NFPStore {
 
     public get phenotypeSource(): u16 {
         return nfp_store_get_phenotype_source();
+    }
+
+    public get nfpBuffer(): Float32Array {
+        return nfp_store_get_nfp_buffer();
     }
 }

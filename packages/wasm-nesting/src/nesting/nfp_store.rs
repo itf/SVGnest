@@ -119,7 +119,7 @@ impl NFPStore {
         self.config_compressed = 0;
     }
 
-    pub fn get_placement_data(&self, input_nodes: &[PolygonNode], area: f32) -> Vec<u8> {
+    pub fn get_placement_data(&self, input_nodes: &[PolygonNode], area: f32) -> Vec<f32> {
         let nfp_buffer_f32 = Self::serialize_map_to_f32(&self.nfp_cache);
         let nodes: Vec<PolygonNode> = self
             .sources
@@ -127,14 +127,7 @@ impl NFPStore {
             .map(|&source| input_nodes[source as usize].clone())
             .collect();
 
-        let f32_buffer =
-            Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area);
-
-        // Convert f32 buffer to bytes
-        let byte_len = f32_buffer.len() * std::mem::size_of::<f32>();
-        let bytes =
-            unsafe { std::slice::from_raw_parts(f32_buffer.as_ptr() as *const u8, byte_len) };
-        bytes.to_vec()
+        Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area)
     }
 
     pub fn nfp_pairs(&self) -> &[Vec<f32>] {
@@ -151,6 +144,11 @@ impl NFPStore {
 
     pub fn phenotype_source(&self) -> u16 {
         self.phenotype_source
+    }
+
+    /// Get serialized NFP buffer from cache
+    pub fn nfp_buffer(&self) -> Vec<f32> {
+        Self::serialize_map_to_f32(&self.nfp_cache)
     }
 
     /// Generate pair data for NFP calculation
@@ -223,12 +221,12 @@ impl NFPStore {
         let mut result = Vec::with_capacity(total_size);
 
         for (key, buffer) in map.iter() {
-            // Write key as f32 (reinterpreted from u32) in big-endian
+            // Write key as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView
             result.push(f32::from_bits(key.swap_bytes()));
 
-            // Write length as f32 (reinterpreted from u32) in big-endian
-            let length = buffer.len() as u32;
-            result.push(f32::from_bits(length.swap_bytes()));
+            // Write length in bytes as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView
+            let length_bytes = (buffer.len() * std::mem::size_of::<f32>()) as u32;
+            result.push(f32::from_bits(length_bytes.swap_bytes()));
 
             // Write buffer data directly as f32
             result.extend_from_slice(buffer);
