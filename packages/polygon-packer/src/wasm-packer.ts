@@ -21,6 +21,18 @@ export default class WasmPacker {
     #nodes: PolygonNode[] = [];
 
     #config: NestConfig = null;
+
+    static #instance: WasmPacker;
+
+    private constructor() { }
+
+    public static get instance(): WasmPacker {
+        if (!WasmPacker.#instance) {
+            WasmPacker.#instance = new WasmPacker();
+        }
+
+        return WasmPacker.#instance;
+    }
     // progressCallback is called when progress is made
     // displayCallback is called when a new placement has been made
     public init(
@@ -93,13 +105,13 @@ export default class WasmPacker {
         return buffer;
     }
 
-    public getPlacementData(generatedNfp: ArrayBuffer[]): Float32Array {
-        NFPStore.instance.update(generatedNfp.map(nfp => new Float32Array(nfp)));
+    public getPlacementData(generatedNfp: Float32Array[]): Float32Array {
+        NFPStore.instance.update(generatedNfp);
 
         return NFPStore.instance.getPlacementData(this.#nodes, this.#binArea);
     }
 
-    public getPlacemehntResult(placements: ArrayBuffer[]): Uint8Array {
+    public getPlacemehntResult(placements: Float32Array[]): Uint8Array {
         let placementsData: Float32Array = new Float32Array(placements[0]);
         let currentPlacement: Float32Array = null;
 

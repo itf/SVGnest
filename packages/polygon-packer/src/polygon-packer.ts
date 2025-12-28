@@ -5,8 +5,6 @@ import { DisplayCallback, f32, NestConfig, u16, u32, usize } from './types';
 import WasmPacker from './wasm-packer';
 
 export default class PolygonPacker {
-    #wasmPacker: WasmPacker;
-
     #isWorking: boolean = false;
 
     #progress: number = 0;
@@ -15,9 +13,6 @@ export default class PolygonPacker {
 
     #paralele: Parallel = new Parallel();
 
-    constructor() {
-        this.#wasmPacker = new WasmPacker();
-    }
 
     // progressCallback is called when progress is made
     // displayCallback is called when a new placement has been made
@@ -42,7 +37,7 @@ export default class PolygonPacker {
             }
         }
 
-        this.#wasmPacker.init(serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
+        WasmPacker.instance.init(serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
         this.#isWorking = true;
 
         this.launchWorkers(displayCallback);
@@ -53,11 +48,11 @@ export default class PolygonPacker {
     }
 
     private onSpawn = (spawnCount: number): void => {
-        this.#progress = spawnCount / this.#wasmPacker.pairCount;
+        this.#progress = spawnCount / WasmPacker.instance.pairCount;
     };
 
     launchWorkers(displayCallback: DisplayCallback) {
-        const serializedPairs = this.#wasmPacker.getPairs();
+        const serializedPairs = WasmPacker.instance.getPairs();
         const pairs = PolygonPacker.deserializePairs(serializedPairs);
         this.#paralele.start(
             pairs,
@@ -72,7 +67,7 @@ export default class PolygonPacker {
     }
 
     private onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        const placements = [this.#wasmPacker.getPlacementData(generatedNfp).buffer];
+        const placements = [WasmPacker.instance.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp))).buffer];
 
         this.#paralele.start(
             placements,
@@ -86,7 +81,7 @@ export default class PolygonPacker {
             return;
         }
 
-        const placementResult = this.#wasmPacker.getPlacemehntResult(placements);
+        const placementResult = WasmPacker.instance.getPlacemehntResult(placements.map(data => new Float32Array(data)));
         const placementWrapper = new PlacementWrapper(placementResult.buffer);
 
         if (this.#isWorking) {
@@ -106,7 +101,7 @@ export default class PolygonPacker {
         this.#paralele.terminate();
 
         if (isClean) {
-            this.#wasmPacker.stop();
+            WasmPacker.instance.stop();
         }
     }
 
