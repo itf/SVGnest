@@ -186,6 +186,12 @@ export default class WasmNesting {
         return x === undefined || x === null;
     }
 
+    private addGlobalObject<T>(data: T): number {
+        const formattedData = typeof data === 'undefined' ? null : data as T;
+
+        return this.isLikeNone(formattedData) ? 0 : this.addHeapObject(formattedData);
+    }
+
     private getImports() {
         return {
             wbg: {
@@ -208,17 +214,17 @@ export default class WasmNesting {
                     }, args);
                 },
                 __wbg_crypto_574e78ad8b13b65f: (arg0: number): number => {
-                    const ret = this.getObject(arg0).crypto;
+                    const ret = this.getObject<Window>(arg0).crypto;
                     return this.addHeapObject(ret);
                 },
                 __wbg_getRandomValues_b8f5dbd5f3995a9e: (...args: unknown[]) =>
                     this.handleError((arg0: number, arg1: number) => {
-                        this.getObject(arg0).getRandomValues(this.getObject(arg1));
+                        this.getObject<Crypto>(arg0).getRandomValues(this.getObject<ArrayBufferView>(arg1));
                     }, args),
                 __wbg_length_3b4f022188ae8db6: (arg0: number): number => this.getObject<Uint8Array>(arg0).length,
                 __wbg_length_a446193dc22c12f8: (arg0: number): number => this.getObject<Uint8Array>(arg0).length,
                 __wbg_msCrypto_a61aeb35a24c1329: (arg0: number): number => {
-                    const ret = this.getObject(arg0).msCrypto;
+                    const ret = this.getObject<Window>(arg0).msCrypto;
                     return this.addHeapObject(ret);
                 },
                 __wbg_new_a12002a7f91c75be: (arg0: number): number => {
@@ -237,24 +243,20 @@ export default class WasmNesting {
                     const ret = new Float32Array(this.getObject<ArrayBuffer>(arg0), arg1 >>> 0, arg2 >>> 0);
                     return this.addHeapObject(ret);
                 },
-                __wbg_newwithlength_5a5efe313cfd59f1: (arg0: number) => {
-                    const ret = new Float32Array(arg0 >>> 0);
-                    return this.addHeapObject(ret);
-                },
-                __wbg_newwithlength_a381634e90c276d4: (arg0: number) => {
-                    const ret = new Uint8Array(arg0 >>> 0);
-                    return this.addHeapObject(ret);
-                },
+                __wbg_newwithlength_5a5efe313cfd59f1: (arg0: number) => 
+                    this.addHeapObject(new Float32Array(arg0 >>> 0)),
+                __wbg_newwithlength_a381634e90c276d4: (arg0: number) => 
+                    this.addHeapObject(new Uint8Array(arg0 >>> 0)),
                 __wbg_node_905d3e251edff8a2: (arg0: number) => {
-                    const ret = this.getObject(arg0).node;
+                    const ret = this.getObject<NodeJS.ProcessVersions>(arg0).node;
                     return this.addHeapObject(ret);
                 },
                 __wbg_process_dc0fbacc7c1c06f7: (arg0: number) => {
-                    const ret = this.getObject(arg0).process;
+                    const ret = this.getObject<typeof globalThis>(arg0).process;
                     return this.addHeapObject(ret);
                 },
                 __wbg_randomFillSync_ac0988aba3254290: (...args: unknown[]) => this.handleError((arg0: number, arg1: number): void => {
-                    this.getObject(arg0).randomFillSync(this.takeObject(arg1));
+                    this.getObject<Sign>(arg0).randomFillSync(this.takeObject(arg1));
                 }, args),
                 __wbg_require_60cc747a6bc5215a: (...args: unknown[]) => {
                     return this.handleError((): number => {
@@ -268,22 +270,10 @@ export default class WasmNesting {
                 __wbg_set_65595bdd868b3009: (arg0: number, arg1: number, arg2: number) => {
                     this.getObject<Uint8Array>(arg0).set(this.getObject<ArrayLike<number>>(arg1), arg2 >>> 0);
                 },
-                __wbg_static_accessor_GLOBAL_88a902d13a557d07: (): number => {
-                    const ret = typeof global === 'undefined' ? null : global;
-                    return this.isLikeNone(ret) ? 0 : this.addHeapObject(ret);
-                },
-                __wbg_static_accessor_GLOBAL_THIS_56578be7e9f832b0: (): number => {
-                    const ret = typeof globalThis === 'undefined' ? null : globalThis;
-                    return this.isLikeNone(ret) ? 0 : this.addHeapObject(ret);
-                },
-                __wbg_static_accessor_SELF_37c5d418e4bf5819: (): number => {
-                    const ret = typeof self === 'undefined' ? null : self;
-                    return this.isLikeNone(ret) ? 0 : this.addHeapObject(ret);
-                },
-                __wbg_static_accessor_WINDOW_5de37043a91a9c40: (): number => {
-                    const ret = typeof window === 'undefined' ? null : window;
-                    return this.isLikeNone(ret) ? 0 : this.addHeapObject(ret);
-                },
+                __wbg_static_accessor_GLOBAL_88a902d13a557d07: (): number => this.addGlobalObject(global),
+                __wbg_static_accessor_GLOBAL_THIS_56578be7e9f832b0: (): number => this.addGlobalObject(globalThis),
+                __wbg_static_accessor_SELF_37c5d418e4bf5819: (): number => this.addGlobalObject(self),
+                __wbg_static_accessor_WINDOW_5de37043a91a9c40: (): number => this.addGlobalObject(window),
                 __wbg_subarray_aa9065fa9dc5df96: (arg0: number, arg1: number, arg2: number): number => {
                     const ret = this.getObject<Uint8Array>(arg0).subarray(arg1 >>> 0, arg2 >>> 0);
                     return this.addHeapObject(ret);
