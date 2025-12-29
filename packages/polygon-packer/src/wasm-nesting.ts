@@ -13,6 +13,8 @@ export default class WasmNesting {
 
     #memSegs: MemSeg[];
 
+    #isInitialized: boolean = false;
+
     constructor() {
         this.#heap = new Array(128).fill(undefined);
 
@@ -33,19 +35,20 @@ export default class WasmNesting {
         this.#vecLen = 0;
     }
 
-    public async init(module_or_path?: string): Promise<any> {
+    public async init(bytes: ArrayBuffer): Promise<any> {
         if (this.#wasm !== undefined) {
             return;
         }
 
         const imports = this.getImports();
 
-        const bytes = await (await fetch(module_or_path)).arrayBuffer();
         const module = await WebAssembly.compile(bytes);
         const instance = await WebAssembly.instantiate(module, imports);
 
         this.#wasm = instance.exports;
         this.#memSegs.fill(null);
+
+        this.#isInitialized = true;
     }
 
     public set_bits_u32(source: number, value: number, index: number, bit_count: number): number {
@@ -96,6 +99,10 @@ export default class WasmNesting {
         return ret >>> 0;
     }
 
+    public get isInitialized(): boolean {
+        return this.#isInitialized;
+    }
+
     private getObject(idx: number): unknown {
         return this.#heap[idx];
     }
@@ -120,24 +127,14 @@ export default class WasmNesting {
     }
 
     private getMem(index: number): MemSeg {
+        if (index > 2) {
+            throw new Error('Unsupported memory segment index');
+        }
+
         if (this.#memSegs[index] === null || this.#memSegs[index].byteLength === 0) {
-            let memory: MemSeg;
+            const ArrayType = WasmNesting.MemSegTypes[index];
 
-            switch(index) {
-                case 0:
-                    memory = new Uint8Array(this.#wasm.memory.buffer);
-                    break;
-                case 1:
-                    memory = new Uint16Array(this.#wasm.memory.buffer);
-                    break;
-                case 2:
-                    memory = new Float32Array(this.#wasm.memory.buffer);
-                    break;
-                default:
-                    throw new Error('Unsupported memory segment index');
-            }
-
-            this.#memSegs[index] = memory;
+            this.#memSegs[index] = new ArrayType(this.#wasm.memory.buffer);
         }
 
         return this.#memSegs[index];
@@ -331,4 +328,6 @@ export default class WasmNesting {
             }
         };
     }
+
+    private static MemSegTypes = [Uint8Array, Uint16Array, Float32Array];
 }

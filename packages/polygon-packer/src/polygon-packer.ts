@@ -14,8 +14,36 @@ export default class PolygonPacker {
 
     #paralele: Parallel = new Parallel();
 
+    #wasmBuffer: ArrayBuffer;
+
+    #workersReady = false;
+
     constructor() {
-        this.#wasmNesting.init('dist/wasm-nesting.wasm');
+        this.initWasm();
+    }
+
+    private async initWasm() {
+        this.#wasmBuffer = await (await fetch('dist/wasm-nesting.wasm')).arrayBuffer();
+        this.#wasmNesting.init(this.cloneWasmBuffer());
+        this.setupWorkers();
+    }
+
+    private async setupWorkers() {
+        this.#workersReady = false;
+        this.#paralele.start(
+            new Array(this.#paralele.threadCount).fill(0).map(() => this.cloneWasmBuffer()),
+            () => {
+                this.#workersReady = true;
+            },
+            this.onError
+        );
+    }
+
+    private cloneWasmBuffer(): ArrayBuffer {
+        const dst = new ArrayBuffer(this.#wasmBuffer.byteLength);
+        new Uint8Array(dst).set(new Uint8Array(this.#wasmBuffer));
+
+        return dst;
     }
 
     // progressCallback is called when progress is made
@@ -95,6 +123,10 @@ export default class PolygonPacker {
     }
 
     public stop(isClean: boolean): void {
+        if (!this.#isWorking) {
+            return;
+        }
+
         this.#isWorking = false;
 
         if (this.#workerTimer) {
@@ -103,6 +135,7 @@ export default class PolygonPacker {
         }
 
         this.#paralele.terminate();
+        this.setupWorkers();
 
         if (isClean) {
             this.#wasmNesting.wasm_packer_stop();
