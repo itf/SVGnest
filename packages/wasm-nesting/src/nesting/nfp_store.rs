@@ -173,8 +173,8 @@ impl NFPStore {
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
         f32_buffer.push(f32::from_bits(THREAD_TYPE_PAIR));
-        f32_buffer.push(f32::from_bits(config.swap_bytes()));
-        f32_buffer.push(f32::from_bits(key.swap_bytes()));
+        f32_buffer.push(f32::from_bits(config));
+        f32_buffer.push(f32::from_bits(key));
 
         // Append serialized f32 data directly
         f32_buffer.extend_from_slice(&serialized_f32);

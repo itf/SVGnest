@@ -16,7 +16,7 @@ impl NestContent {
     }
 
     pub fn init(&mut self, buffer: &[f32], node_offset: usize) {
-        let nest_data = buffer[1].to_bits().swap_bytes();
+        let nest_data = buffer[1].to_bits();
         let mut nodes = PolygonNode::deserialize(buffer, node_offset);
 
         self.nest_config.deserialize(nest_data);
