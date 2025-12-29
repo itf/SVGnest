@@ -25,46 +25,47 @@ impl PlaceContent {
         }
     }
 
-    /// Initialize from byte buffer
-    /// Buffer format (matching TypeScript PlaceContent):
-    /// - [0..4]: UNKNOWN (skipped)
-    /// - [4..8]: nest_config (u32)
-    /// - [8..12]: area (f32)
-    /// - [12..16]: map_buffer_size (u32)
-    /// - [16..16+map_buffer_size]: NFP cache map
-    /// - [16+map_buffer_size..]: nodes data
-    pub fn init(&mut self, buffer: &[u8]) -> &mut Self {
-        if buffer.len() < 20 {
+    /// Initialize from f32 buffer (view of original bytes as 32-bit words)
+    /// Buffer format (matching TypeScript PlaceContent when viewed as 32-bit words):
+    /// - [0]: UNKNOWN (skipped)
+    /// - [1]: nest_config (u32 bit pattern)
+    /// - [2]: area (f32)
+    /// - [3]: map_buffer_size (u32 bit pattern, bytes)
+    /// - [4..4+map_words]: NFP cache map as f32 words
+    /// - [4+map_words..]: nodes data (f32 words)
+    pub fn init(&mut self, buffer: &[f32]) -> &mut Self {
+        // Need at least 5 words (20 bytes) to contain header + possibly empty map
+        if buffer.len() < 5 {
             return self;
         }
 
-        // Read nest_config from bytes 4-8 (big-endian u32, matching TypeScript DataView)
-        let nest_config = u32::from_le_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]);
+        // Read nest_config from word index 1 (u32 stored in f32 bit pattern)
+        let nest_config = buffer[1].to_bits();
 
-        // Read area from bytes 8-12 (big-endian f32, matching TypeScript DataView)
-        self.area = f32::from_le_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]);
+        // Read area from word index 2
+        self.area = buffer[2];
 
-        // Read map_buffer_size from bytes 12-16 (big-endian u32, matching TypeScript DataView)
-        let map_buffer_size =
-            u32::from_le_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
+        // Read map_buffer_size in bytes from word index 3
+        let map_buffer_size_bytes = buffer[3].to_bits() as usize;
+
+        // Convert bytes to number of f32 words
+        let map_words = map_buffer_size_bytes / 4;
 
         // Extract rotations from nest_config (bits 9-13, 5 bits)
         self.rotations = get_bits(nest_config, 9, 5) as u32;
 
-        // Deserialize NFP cache map: convert the map byte region to f32 words
-        // and then parse entries from that f32 view.
-        let mut map_f32 = Vec::new();
-        if buffer.len() >= 16 + map_buffer_size {
-            map_f32 = Self::bytes_to_f32_buffer(&buffer[16..16 + map_buffer_size]);
+        // Deserialize NFP cache map from the f32 word region starting at index 4
+        if 4 + map_words <= buffer.len() {
+            self.nfp_cache = Self::deserialize_buffer_to_map(buffer, 4, map_words);
+        } else {
+            self.nfp_cache.clear();
         }
-        self.nfp_cache = Self::deserialize_buffer_to_map(&map_f32, 0, map_f32.len());
 
-        // Initialize nodes from remaining buffer
-        let node_offset = 16 + map_buffer_size;
-        if node_offset < buffer.len() {
-            // Convert byte buffer to f32 buffer (matching TypeScript Float32Array view)
-            let f32_buffer = Self::bytes_to_f32_buffer(&buffer[node_offset..]);
-            self.nest_content.init_from_f32(&f32_buffer, nest_config);
+        // Initialize nodes from remaining words
+        let node_word_offset = 4 + map_words;
+        if node_word_offset < buffer.len() {
+            self.nest_content
+                .init_from_f32(&buffer[node_word_offset..], nest_config);
         }
 
         self

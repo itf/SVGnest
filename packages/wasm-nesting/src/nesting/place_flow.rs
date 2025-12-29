@@ -280,7 +280,7 @@ pub fn get_result(placements: &[Vec<f32>], path_items: &[Vec<u32>], fitness: f32
 
 /// Port of TypeScript placePaths function
 /// Main placement algorithm that packs polygons into bins
-pub fn place_paths(buffer: &[u8]) -> Vec<f32> {
+pub fn place_paths(buffer: &[f32]) -> Vec<f32> {
     let mut place_content = PlaceContent::new();
     place_content.init(buffer);
 
