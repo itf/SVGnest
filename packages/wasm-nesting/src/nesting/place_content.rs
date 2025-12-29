@@ -169,47 +169,6 @@ impl PlaceContent {
         map
     }
 
-    /// Public static method to deserialize NFP cache from buffer
-    /// Reads map_buffer_size from bytes 12-16 and deserializes the map
-    pub fn deserialize_nfp_cache(buffer: &[u8]) -> HashMap<u32, Vec<f32>> {
-        if buffer.len() < 16 {
-            return HashMap::new();
-        }
-
-        // Read map_buffer_size from bytes 12-16 (big-endian u32, matching TypeScript DataView)
-        let map_buffer_size =
-            u32::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
-
-        if buffer.len() < 16 + map_buffer_size {
-            return HashMap::new();
-        }
-
-        let map_f32 = Self::bytes_to_f32_buffer(&buffer[16..16 + map_buffer_size]);
-
-        Self::deserialize_buffer_to_map(&map_f32, 0, map_f32.len())
-    }
-
-    /// Convert byte buffer to f32 buffer (matching TypeScript Float32Array view)
-    /// Creates a view of the byte data as f32 values using little-endian byte order
-    fn bytes_to_f32_buffer(buffer: &[u8]) -> Vec<f32> {
-        let f32_count = buffer.len() / 4;
-        let mut result = Vec::with_capacity(f32_count);
-
-        for i in 0..f32_count {
-            let offset = i * 4;
-            let bytes = [
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ];
-            // Float32Array uses little-endian (native byte order on x86/ARM)
-            result.push(f32::from_le_bytes(bytes));
-        }
-
-        result
-    }
-
     // Getters
     pub fn rotations(&self) -> u32 {
         self.rotations

@@ -172,7 +172,7 @@ impl NFPStore {
         let mut f32_buffer = Vec::with_capacity(3 + serialized_f32.len());
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
-        f32_buffer.push(f32::from_bits(THREAD_TYPE_PAIR.swap_bytes()));
+        f32_buffer.push(f32::from_bits(THREAD_TYPE_PAIR));
         f32_buffer.push(f32::from_bits(config.swap_bytes()));
         f32_buffer.push(f32::from_bits(key.swap_bytes()));
 
@@ -202,7 +202,7 @@ impl NFPStore {
         let mut buffer = Vec::with_capacity(total_size);
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
-        buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT.swap_bytes()));
+        buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT));
         buffer.push(f32::from_bits(config));
         buffer.push(f32::from_bits(area.to_bits()));
         // Write buffer size in bytes (not f32 count) to match PlaceContent::init expectations

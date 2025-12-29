@@ -35,7 +35,7 @@ pub fn calculate(buffer: &[u8]) -> Vec<f32> {
     }
 
     // Read thread type from first 4 bytes (big-endian u32, matching DataView.getUint32)
-    let data_type = u32::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
+    let data_type = u32::from_le_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
 
     let thread_type = match ThreadType::from_u32(data_type) {
         Some(t) => t,
