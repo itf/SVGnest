@@ -51,8 +51,13 @@ impl PlaceContent {
         // Extract rotations from nest_config (bits 9-13, 5 bits)
         self.rotations = get_bits(nest_config, 9, 5) as u32;
 
-        // Deserialize NFP cache map
-        self.nfp_cache = Self::deserialize_buffer_to_map(buffer, 16, map_buffer_size);
+        // Deserialize NFP cache map: convert the map byte region to f32 words
+        // and then parse entries from that f32 view.
+        let mut map_f32 = Vec::new();
+        if buffer.len() >= 16 + map_buffer_size {
+            map_f32 = Self::bytes_to_f32_buffer(&buffer[16..16 + map_buffer_size]);
+        }
+        self.nfp_cache = Self::deserialize_buffer_to_map(&map_f32, 0, map_f32.len());
 
         // Initialize nodes from remaining buffer
         let node_offset = 16 + map_buffer_size;
@@ -122,7 +127,7 @@ impl PlaceContent {
     /// Matches TypeScript PlaceContent.deserializeBufferToMap (DataView big-endian)
     /// Converts byte values to f32 during deserialization
     fn deserialize_buffer_to_map(
-        buffer: &[u8],
+        buffer: &[f32],
         initial_offset: usize,
         buffer_size: usize,
     ) -> HashMap<u32, Vec<f32>> {
@@ -130,42 +135,31 @@ impl PlaceContent {
         let result_offset = initial_offset + buffer_size;
         let mut offset = initial_offset;
 
-        while offset + 8 <= result_offset {
-            // Read key (big-endian u32, matching TypeScript DataView)
-            let key = u32::from_be_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]);
-            offset += 4;
+        // Each entry in the map is laid out as 32-bit words. When the buffer is
+        // provided as a `&[f32]`, the first two words for each entry are the
+        // `key` and `length` encoded as 32-bit values (their bit patterns are
+        // reinterpreted from the underlying bytes). We extract those by
+        // reading the f32 bit patterns via `to_bits()`.
+        while offset + 2 <= result_offset {
+            // Read key (u32 represented in the bit pattern of the f32 value)
+            let key = buffer[offset].to_bits();
+            offset += 1;
 
-            // Read length (big-endian u32, matching TypeScript DataView)
-            let length = u32::from_be_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]) as usize;
-            offset += 4;
+            // Read length in bytes (u32 represented in the bit pattern)
+            let length_bytes = buffer[offset].to_bits() as usize;
+            offset += 1;
 
-            // Read value bytes and convert to f32
-            if offset + length <= buffer.len() {
-                let f32_count = length / 4;
+            // Calculate how many f32 values the length refers to
+            let f32_count = length_bytes / 4;
+
+            if offset + f32_count <= result_offset {
                 let mut f32_values = Vec::with_capacity(f32_count);
-
                 for i in 0..f32_count {
-                    let byte_offset = offset + (i * 4);
-                    f32_values.push(f32::from_le_bytes([
-                        buffer[byte_offset],
-                        buffer[byte_offset + 1],
-                        buffer[byte_offset + 2],
-                        buffer[byte_offset + 3],
-                    ]));
+                    f32_values.push(buffer[offset + i]);
                 }
 
                 map.insert(key, f32_values);
-                offset += length;
+                offset += f32_count;
             } else {
                 break;
             }
@@ -185,7 +179,13 @@ impl PlaceContent {
         let map_buffer_size =
             u32::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
 
-        Self::deserialize_buffer_to_map(buffer, 16, map_buffer_size)
+        if buffer.len() < 16 + map_buffer_size {
+            return HashMap::new();
+        }
+
+        let map_f32 = Self::bytes_to_f32_buffer(&buffer[16..16 + map_buffer_size]);
+
+        Self::deserialize_buffer_to_map(&map_f32, 0, map_f32.len())
     }
 
     /// Convert byte buffer to f32 buffer (matching TypeScript Float32Array view)
