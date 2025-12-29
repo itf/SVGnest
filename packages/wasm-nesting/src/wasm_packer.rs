@@ -1,8 +1,12 @@
+use crate::clipper_wrapper;
 use crate::{
     genetic_algorithm::GeneticAlgorithm,
     geometry::bound_rect::BoundRect,
     nest_config::NestConfig,
-    nesting::{nfp_store::NFPStore, polygon_node::PolygonNode},
+    nesting::{
+        nfp_store::NFPStore,
+        polygon_node::{PolygonNode, SourceItem},
+    },
     utils::{bit_ops::get_u16, number::Number},
 };
 use std::cell::RefCell;
@@ -59,23 +63,46 @@ impl WasmPacker {
         // Deserialize config
         self.config.deserialize(configuration);
 
-        // Generate bounds for bin
-        let bin_data = Self::generate_bounds_internal(
+        // Generate bounds for bin (inline clipper call directly)
+        let result = clipper_wrapper::generate_bounds(
             bin_polygon,
             self.config.spacing as i32,
-            self.config.curve_tolerance,
+            self.config.curve_tolerance as f64,
         );
 
-        self.bin_node = Some(bin_data.bin_node);
-        self.bin_bounds = Some(bin_data.bounds);
-        self.result_bounds = Some(bin_data.result_bounds);
-        self.bin_area = bin_data.area;
+        match result {
+            Some((bounds, result_bounds, area, node)) => {
+                self.bin_node = Some(node);
+                self.bin_bounds = Some(bounds);
+                self.result_bounds = Some(result_bounds);
+                self.bin_area = area as f32;
+            }
+            None => panic!("Failed to generate bounds"),
+        }
 
-        // Generate tree for other polygons
-        self.nodes = Self::generate_tree_internal(
-            &polygons,
+        // Generate tree for other polygons (inline previous helper)
+        // Flatten polygons into single array with sizes
+        let mut total_length = 0;
+        let mut sizes: Vec<u16> = Vec::new();
+
+        for polygon in &polygons {
+            sizes.push((polygon.len() >> 1) as u16); // Point count
+            total_length += polygon.len();
+        }
+
+        let mut values = vec![0f32; total_length];
+        let mut offset2 = 0;
+
+        for polygon in &polygons {
+            values[offset2..offset2 + polygon.len()].copy_from_slice(polygon);
+            offset2 += polygon.len();
+        }
+
+        self.nodes = clipper_wrapper::generate_tree(
+            &values,
+            &sizes,
             self.config.spacing as i32,
-            self.config.curve_tolerance,
+            self.config.curve_tolerance as f64,
         );
 
         // Initialize genetic algorithm
@@ -214,7 +241,7 @@ impl WasmPacker {
             has_result,
             self.bin_bounds.as_ref().unwrap(),
             if has_result {
-                Self::convert_nodes_to_source_items(&self.nodes)
+                PolygonNode::convert_to_source_items(&self.nodes)
             } else {
                 Vec::new()
             },
@@ -242,62 +269,9 @@ impl WasmPacker {
         data[index].to_bits()
     }
 
-    fn generate_bounds_internal(mem_seg: &[f32], spacing: i32, curve_tolerance: f32) -> BoundsData {
-        use crate::clipper_wrapper;
+    // generate_bounds_internal removed — call clipper_wrapper::generate_bounds directly.
 
-        let result = clipper_wrapper::generate_bounds(mem_seg, spacing, curve_tolerance as f64);
-
-        match result {
-            Some((bounds, result_bounds, area, node)) => BoundsData {
-                bounds,
-                result_bounds,
-                area: area as f32,
-                bin_node: node,
-            },
-            None => panic!("Failed to generate bounds"),
-        }
-    }
-
-    fn generate_tree_internal(
-        polygons: &[&[f32]],
-        spacing: i32,
-        curve_tolerance: f32,
-    ) -> Vec<PolygonNode> {
-        use crate::clipper_wrapper;
-
-        // Flatten polygons into single array with sizes
-        let mut total_length = 0;
-        let mut sizes = Vec::new();
-
-        for polygon in polygons {
-            sizes.push((polygon.len() >> 1) as u16); // Point count
-            total_length += polygon.len();
-        }
-
-        let mut values = vec![0f32; total_length];
-        let mut offset = 0;
-
-        for polygon in polygons {
-            values[offset..offset + polygon.len()].copy_from_slice(polygon);
-            offset += polygon.len();
-        }
-
-        clipper_wrapper::generate_tree(&values, &sizes, spacing, curve_tolerance as f64)
-    }
-
-    fn convert_nodes_to_source_items(nodes: &[PolygonNode]) -> Vec<SourceItem> {
-        nodes
-            .iter()
-            .map(|node| Self::convert_node_to_source_item(node))
-            .collect()
-    }
-
-    fn convert_node_to_source_item(node: &PolygonNode) -> SourceItem {
-        SourceItem {
-            source: node.source as u16,
-            children: Self::convert_nodes_to_source_items(&node.children),
-        }
-    }
+    // generate_tree_internal removed — call clipper_wrapper::generate_tree directly.
 
     fn calculate_source_items_size(items: &[SourceItem]) -> usize {
         items.iter().fold(0, |total, item| {
@@ -424,15 +398,4 @@ impl WasmPacker {
     }
 }
 
-struct BoundsData {
-    bounds: BoundRect<f32>,
-    result_bounds: BoundRect<f32>,
-    area: f32,
-    bin_node: PolygonNode,
-}
-
-#[derive(Debug, Clone)]
-struct SourceItem {
-    source: u16,
-    children: Vec<SourceItem>,
-}
+// `SourceItem` is provided by `nesting::polygon_node::SourceItem` now.

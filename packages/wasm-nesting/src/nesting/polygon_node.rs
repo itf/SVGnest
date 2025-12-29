@@ -7,6 +7,13 @@ pub struct PolygonNode {
     pub children: Vec<PolygonNode>,
 }
 
+/// SourceItem represents a node and its children in a serializable form.
+#[derive(Debug, Clone)]
+pub struct SourceItem {
+    pub source: u16,
+    pub children: Vec<SourceItem>,
+}
+
 impl PolygonNode {
     /// Create a new PolygonNode from source, rotation, and memory segment
     pub fn new(source: i32, rotation: f32, mem_seg: Vec<f32>) -> Self {
@@ -192,6 +199,14 @@ impl PolygonNode {
         result
     }
 
+    /// Convert this node (and children) into a `SourceItem`.
+    pub fn to_source_item(&self) -> SourceItem {
+        SourceItem {
+            source: self.source as u16,
+            children: self.children.iter().map(|c| c.to_source_item()).collect(),
+        }
+    }
+
     /// Rotate a single polygon node and all its children
     fn rotate_node(root_node: &mut PolygonNode, rotation: f32) {
         use crate::utils::number::Number;
@@ -219,5 +234,9 @@ impl PolygonNode {
                 children: Self::clone_nodes(&node.children),
             })
             .collect()
+    }
+
+    pub fn convert_to_source_items(nodes: &[PolygonNode]) -> Vec<SourceItem> {
+        nodes.iter().map(|node| node.to_source_item()).collect()
     }
 }
