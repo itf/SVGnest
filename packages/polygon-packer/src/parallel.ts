@@ -90,6 +90,10 @@
         this.#isTerminated = true;
     }
 
+    public get threadCount(): number {
+        return this.#threadCount;
+    }
+
     private trigger(): boolean {
         const index: number = this.#threadsUsage.indexOf(false);
 

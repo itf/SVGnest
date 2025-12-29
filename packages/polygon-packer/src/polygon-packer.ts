@@ -1,17 +1,11 @@
-import {
-    wasm_packer_init,
-    wasm_packer_get_pairs,
-    wasm_packer_get_placement_data,
-    wasm_packer_get_placement_result,
-    wasm_packer_stop,
-    wasm_packer_pair_count,
-    set_bits_u32
-} from 'wasm-nesting';
+import WasmNesting from './wasm-nesting';
 import Parallel from './parallel';
 import PlacementWrapper from './placement-wrapper';
 import { DisplayCallback, f32, NestConfig, u16, u32, usize } from './types';
 
 export default class PolygonPacker {
+    #wasmNesting: WasmNesting = new WasmNesting();
+
     #isWorking: boolean = false;
 
     #progress: f32 = 0;
@@ -20,6 +14,37 @@ export default class PolygonPacker {
 
     #paralele: Parallel = new Parallel();
 
+    #wasmBuffer: ArrayBuffer;
+
+    #workersReady = false;
+
+    constructor() {
+        this.initWasm();
+    }
+
+    private async initWasm() {
+        this.#wasmBuffer = await (await fetch('dist/wasm-nesting.wasm')).arrayBuffer();
+        this.#wasmNesting.init(this.cloneWasmBuffer());
+        this.setupWorkers();
+    }
+
+    private async setupWorkers() {
+        this.#workersReady = false;
+        this.#paralele.start(
+            new Array(this.#paralele.threadCount).fill(0).map(() => this.cloneWasmBuffer()),
+            () => {
+                this.#workersReady = true;
+            },
+            this.onError
+        );
+    }
+
+    private cloneWasmBuffer(): ArrayBuffer {
+        const dst = new ArrayBuffer(this.#wasmBuffer.byteLength);
+        new Uint8Array(dst).set(new Uint8Array(this.#wasmBuffer));
+
+        return dst;
+    }
 
     // progressCallback is called when progress is made
     // displayCallback is called when a new placement has been made
@@ -44,7 +69,7 @@ export default class PolygonPacker {
             }
         }
 
-        wasm_packer_init(PolygonPacker.serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
+        this.#wasmNesting.wasm_packer_init(this.serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
         this.#isWorking = true;
 
         this.launchWorkers(displayCallback);
@@ -55,11 +80,11 @@ export default class PolygonPacker {
     }
 
     private onSpawn = (spawnCount: number): void => {
-        this.#progress = spawnCount / wasm_packer_pair_count();
+        this.#progress = spawnCount / this.#wasmNesting.wasm_packer_pair_count();
     };
 
     launchWorkers(displayCallback: DisplayCallback) {
-        const serializedPairs = PolygonPacker.getPairs();
+        const serializedPairs = this.getPairs();
         const pairs = PolygonPacker.deserializePairs(serializedPairs);
         this.#paralele.start(
             pairs,
@@ -74,7 +99,7 @@ export default class PolygonPacker {
     }
 
     private onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        const placements = [PolygonPacker.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp))).buffer];
+        const placements = [this.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp))).buffer];
 
         this.#paralele.start(
             placements,
@@ -88,7 +113,7 @@ export default class PolygonPacker {
             return;
         }
 
-        const placementResult = PolygonPacker.getPlacemehntResult(placements.map(data => new Float32Array(data)));
+        const placementResult = this.getPlacemehntResult(placements.map(data => new Float32Array(data)));
         const placementWrapper = new PlacementWrapper(placementResult.buffer);
 
         if (this.#isWorking) {
@@ -98,6 +123,10 @@ export default class PolygonPacker {
     }
 
     public stop(isClean: boolean): void {
+        if (!this.#isWorking) {
+            return;
+        }
+
         this.#isWorking = false;
 
         if (this.#workerTimer) {
@@ -106,9 +135,10 @@ export default class PolygonPacker {
         }
 
         this.#paralele.terminate();
+        this.setupWorkers();
 
         if (isClean) {
-            wasm_packer_stop();
+            this.#wasmNesting.wasm_packer_stop();
         }
     }
 
@@ -136,26 +166,26 @@ export default class PolygonPacker {
         return pairs;
     }
 
-    private static serializeConfig(config: NestConfig): number {
+    private serializeConfig(config: NestConfig): number {
         let result: number = 0;
-    
+
         // Кодуємо значення в число
-        result = set_bits_u32(result, config.curveTolerance * 10, 0, 4);
-        result = set_bits_u32(result, config.spacing, 4, 5);
-        result = set_bits_u32(result, config.rotations, 9, 5);
-        result = set_bits_u32(result, config.populationSize, 14, 7);
-        result = set_bits_u32(result, config.mutationRate, 21, 7);
-        result = set_bits_u32(result, Number(config.useHoles), 28, 1);
-    
+        result = this.#wasmNesting.set_bits_u32(result, config.curveTolerance * 10, 0, 4);
+        result = this.#wasmNesting.set_bits_u32(result, config.spacing, 4, 5);
+        result = this.#wasmNesting.set_bits_u32(result, config.rotations, 9, 5);
+        result = this.#wasmNesting.set_bits_u32(result, config.populationSize, 14, 7);
+        result = this.#wasmNesting.set_bits_u32(result, config.mutationRate, 21, 7);
+        result = this.#wasmNesting.set_bits_u32(result, Number(config.useHoles), 28, 1);
+
         return result;
     }
 
-    private static getPairs(): Float32Array {
-        const result = wasm_packer_get_pairs();
+    private getPairs(): Float32Array {
+        const result = this.#wasmNesting.wasm_packer_get_pairs();
         return new Float32Array(result.buffer, result.byteOffset, result.byteLength / Float32Array.BYTES_PER_ELEMENT);
     }
 
-    private static getPlacementData(generatedNfp: Float32Array[]): Float32Array {
+    private getPlacementData(generatedNfp: Float32Array[]): Float32Array {
         // Serialize Float32Array[] into a flat array
         // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
         let totalSize = 1; // count
@@ -178,11 +208,11 @@ export default class PolygonPacker {
             offset += nfp.length;
         }
 
-        const result = wasm_packer_get_placement_data(buffer);
+        const result = this.#wasmNesting.wasm_packer_get_placement_data(buffer);
         return new Float32Array(result.buffer, result.byteOffset, result.byteLength / Float32Array.BYTES_PER_ELEMENT);
     }
 
-    private static getPlacemehntResult(placements: Float32Array[]): Uint8Array {
+    private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
         // Serialize Float32Array[] into a flat array
         // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
         let totalSize = 1; // count
@@ -205,6 +235,6 @@ export default class PolygonPacker {
             offset += placement.length;
         }
 
-        return wasm_packer_get_placement_result(buffer);
+        return this.#wasmNesting.wasm_packer_get_placement_result(buffer);
     }
 }

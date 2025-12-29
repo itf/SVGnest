@@ -11,7 +11,9 @@ export default {
         libraryTarget: 'umd',
         umdNamedDefine: true,
         filename: 'polygon-packer.js',
-        path: path.resolve('../../dist')
+        path: path.resolve('../../dist'),
+        globalObject: 'this',
+        chunkFilename: 'polygon-packer.calc.js'
     },
     externals: {
         'wasm-nesting': 'WasmNesting' // Treat wasm-nesting as an external dependency

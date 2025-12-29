@@ -94,9 +94,10 @@ const REDUCER = new Map<REDUCER_ACTION, ReducerMiddleware>([
         (prevState, percent: number) => {
             const progress: number = toPercents(percent);
 
-            return percent > PROGRESS_TRASHOLD
-                ? { ...prevState, progress, estimate: ((new Date().getTime() - prevState.startTime) / percent) * (1 - percent) }
-                : { ...prevState, progress, estimate: 0, startTime: new Date().getTime() };
+            const startTime = percent > PROGRESS_TRASHOLD && prevState.startTime ? prevState.startTime : new Date().getTime();
+            const estimate = percent > PROGRESS_TRASHOLD ? ((new Date().getTime() - startTime) / percent) * (1 - percent) : 0;
+
+            return { ...prevState, progress, estimate, startTime };
         }
     ],
     [
