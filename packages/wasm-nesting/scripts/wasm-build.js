@@ -40,6 +40,9 @@ exec(command, (error, stdout, stderr) => {
                 const stats = fs.statSync(wasmFile);
                 console.log(`Final WASM size: ${(stats.size / 1024).toFixed(2)} KB`);
             }
+
+            // Copy WASM file to dist folder
+            copyWasmToDist();
         });
     } else {
         if (fs.existsSync(wasmFile)) {
@@ -49,5 +52,28 @@ exec(command, (error, stdout, stderr) => {
             console.log('   sudo apt install binaryen  (Ubuntu/Debian)');
             console.log('   or cargo install wasm-opt\n');
         }
+
+        // Copy WASM file to dist folder
+        copyWasmToDist();
     }
 });
+
+// Function to copy WASM file to dist folder
+function copyWasmToDist() {
+    const sourcePath = path.join(__dirname, '..', 'pkg', 'wasm-nesting_bg.wasm');
+    const destPath = path.join(__dirname, '../../..', 'dist', 'wasm-nesting.wasm');
+
+    try {
+        // Ensure dist directory exists
+        const distDir = path.dirname(destPath);
+        if (!fs.existsSync(distDir)) {
+            fs.mkdirSync(distDir, { recursive: true });
+        }
+
+        fs.copyFileSync(sourcePath, destPath);
+        console.log('✅ WASM file copied successfully to dist/wasm-nesting.wasm');
+    } catch (error) {
+        console.error('❌ Error copying WASM file:', error.message);
+        process.exit(1);
+    }
+}
