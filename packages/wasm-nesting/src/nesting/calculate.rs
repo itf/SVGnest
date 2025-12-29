@@ -29,13 +29,13 @@ impl ThreadType {
 ///
 /// # Returns
 /// Result buffer from either pair_data or place_paths
-pub fn calculate(buffer: &[u8]) -> Vec<f32> {
+pub fn calculate(buffer: &[f32]) -> Vec<f32> {
     if buffer.len() < 4 {
         return Vec::new();
     }
 
     // Read thread type from first 4 bytes (big-endian u32, matching DataView.getUint32)
-    let data_type = u32::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
+    let data_type = buffer[0].to_bits();
 
     let thread_type = match ThreadType::from_u32(data_type) {
         Some(t) => t,
@@ -44,19 +44,9 @@ pub fn calculate(buffer: &[u8]) -> Vec<f32> {
 
     match thread_type {
         ThreadType::Pair => {
-            // Convert u8 buffer to f32 buffer for pair_data
-            if buffer.len() % 4 != 0 {
-                return Vec::new();
-            }
-
-            let f32_buffer: Vec<f32> = buffer
-                .chunks_exact(4)
-                .map(|chunk| f32::from_ne_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-                .collect();
-
-            unsafe { pair_data(&f32_buffer) }
+            unsafe { pair_data(&buffer) }
         }
-        ThreadType::Placement => place_paths(buffer),
+        ThreadType::Placement => place_paths(&buffer),
     }
 }
 

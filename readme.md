@@ -2,7 +2,7 @@
 
 -   Migrated to modern Web-Project structure.
 -   Restructure project to monorep for reusage of modules.
--   Rewritten code to Typescript.
+-   Rewritten code to Rust and Typescript.
 -   Migrate SVG parsing logic to non-DOM libs.
 -   Optimized worker flow (Now workers created only once and reused).
 -   Moved workers to ArrayBuffer input/output for better memory usage.
@@ -10,8 +10,7 @@
 -   Optimized concave flow. Now it faster then original. Original flow removed.
 -   Isolated and refactored js-clipper logic to avoid of full lib usage (it decrease package size twice).
 -   Rewrote js-clipper from dynamic lists to Data locality pattern structure.
--   Fully ported js-clipper to Rust.
--   Migrated pair and place flows to Rust with WASM (speed-up packing time near 10 times).
+-   Fully ported all math logic to Rust with WASM (speed-up packing time near 10 times).
 -   Migrated UI to React.
 -   Added dev server for ability to run it without additional plugins.
 
@@ -19,7 +18,6 @@
 
 -   Add node package for ability to run nesting tool from terminal on server-side.
 -   Add es-doc for all files.
--   Migrate geometry calculations to WASM using Rust (in progress).
 -   Extruct gravity argument to configuration for ability to configure it on UI.
 
 ## Why I do it

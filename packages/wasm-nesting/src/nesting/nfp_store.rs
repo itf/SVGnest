@@ -166,15 +166,15 @@ impl NFPStore {
         let rotated_nodes = PolygonNode::rotate_nodes(nodes);
 
         // Serialize the nodes directly to f32 (no byte conversion needed)
-        let serialized_f32 = PolygonNode::serialize_f32(&rotated_nodes, 0);
+        let serialized_f32 = PolygonNode::serialize(&rotated_nodes, 0);
 
         // Create buffer with header + serialized nodes
         let mut f32_buffer = Vec::with_capacity(3 + serialized_f32.len());
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
-        f32_buffer.push(f32::from_bits(THREAD_TYPE_PAIR.swap_bytes()));
-        f32_buffer.push(f32::from_bits(config.swap_bytes()));
-        f32_buffer.push(f32::from_bits(key.swap_bytes()));
+        f32_buffer.push(f32::from_bits(THREAD_TYPE_PAIR));
+        f32_buffer.push(f32::from_bits(config));
+        f32_buffer.push(f32::from_bits(key));
 
         // Append serialized f32 data directly
         f32_buffer.extend_from_slice(&serialized_f32);
@@ -195,19 +195,19 @@ impl NFPStore {
         let nodes = PolygonNode::rotate_nodes(input_nodes);
 
         // Serialize nodes as f32
-        let nodes_f32 = PolygonNode::serialize_f32(&nodes, 0);
+        let nodes_f32 = PolygonNode::serialize(&nodes, 0);
 
         // Calculate total size: 4 header f32 elements + NFP buffer + nodes
         let total_size = 4 + nfp_buffer_f32.len() + nodes_f32.len();
         let mut buffer = Vec::with_capacity(total_size);
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
-        buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT.swap_bytes()));
-        buffer.push(f32::from_bits(config.swap_bytes()));
-        buffer.push(f32::from_bits(area.to_bits().swap_bytes()));
+        buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT));
+        buffer.push(f32::from_bits(config));
+        buffer.push(f32::from_bits(area.to_bits()));
         // Write buffer size in bytes (not f32 count) to match PlaceContent::init expectations
         let buffer_size_bytes = (nfp_buffer_f32.len() * std::mem::size_of::<f32>()) as u32;
-        buffer.push(f32::from_bits(buffer_size_bytes.swap_bytes()));
+        buffer.push(f32::from_bits(buffer_size_bytes));
 
         // Append NFP cache buffer directly as f32
         buffer.extend_from_slice(nfp_buffer_f32);
@@ -235,11 +235,11 @@ impl NFPStore {
             let buffer = &map[key];
 
             // Write key as f32 (reinterpreted from u32) in big-endian to match how keys are stored in cache
-            result.push(f32::from_bits(key.swap_bytes()));
+            result.push(f32::from_bits(*key));
 
             // Write length in bytes as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView
             let length_bytes = (buffer.len() * std::mem::size_of::<f32>()) as u32;
-            result.push(f32::from_bits(length_bytes.swap_bytes()));
+            result.push(f32::from_bits(length_bytes));
 
             // Write buffer data directly as f32
             result.extend_from_slice(buffer);

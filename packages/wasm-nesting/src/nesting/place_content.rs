@@ -25,41 +25,47 @@ impl PlaceContent {
         }
     }
 
-    /// Initialize from byte buffer
-    /// Buffer format (matching TypeScript PlaceContent):
-    /// - [0..4]: UNKNOWN (skipped)
-    /// - [4..8]: nest_config (u32)
-    /// - [8..12]: area (f32)
-    /// - [12..16]: map_buffer_size (u32)
-    /// - [16..16+map_buffer_size]: NFP cache map
-    /// - [16+map_buffer_size..]: nodes data
-    pub fn init(&mut self, buffer: &[u8]) -> &mut Self {
-        if buffer.len() < 20 {
+    /// Initialize from f32 buffer (view of original bytes as 32-bit words)
+    /// Buffer format (matching TypeScript PlaceContent when viewed as 32-bit words):
+    /// - [0]: UNKNOWN (skipped)
+    /// - [1]: nest_config (u32 bit pattern)
+    /// - [2]: area (f32)
+    /// - [3]: map_buffer_size (u32 bit pattern, bytes)
+    /// - [4..4+map_words]: NFP cache map as f32 words
+    /// - [4+map_words..]: nodes data (f32 words)
+    pub fn init(&mut self, buffer: &[f32]) -> &mut Self {
+        // Need at least 5 words (20 bytes) to contain header + possibly empty map
+        if buffer.len() < 5 {
             return self;
         }
 
-        // Read nest_config from bytes 4-8 (big-endian u32, matching TypeScript DataView)
-        let nest_config = u32::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]);
+        // Read nest_config from word index 1 (u32 stored in f32 bit pattern)
+        let nest_config = buffer[1].to_bits();
 
-        // Read area from bytes 8-12 (big-endian f32, matching TypeScript DataView)
-        self.area = f32::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]);
+        // Read area from word index 2
+        self.area = buffer[2];
 
-        // Read map_buffer_size from bytes 12-16 (big-endian u32, matching TypeScript DataView)
-        let map_buffer_size =
-            u32::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
+        // Read map_buffer_size in bytes from word index 3
+        let map_buffer_size_bytes = buffer[3].to_bits() as usize;
+
+        // Convert bytes to number of f32 words
+        let map_words = map_buffer_size_bytes / 4;
 
         // Extract rotations from nest_config (bits 9-13, 5 bits)
         self.rotations = get_bits(nest_config, 9, 5) as u32;
 
-        // Deserialize NFP cache map
-        self.nfp_cache = Self::deserialize_buffer_to_map(buffer, 16, map_buffer_size);
+        // Deserialize NFP cache map from the f32 word region starting at index 4
+        if 4 + map_words <= buffer.len() {
+            self.nfp_cache = Self::deserialize_buffer_to_map(buffer, 4, map_words);
+        } else {
+            self.nfp_cache.clear();
+        }
 
-        // Initialize nodes from remaining buffer
-        let node_offset = 16 + map_buffer_size;
-        if node_offset < buffer.len() {
-            // Convert byte buffer to f32 buffer (matching TypeScript Float32Array view)
-            let f32_buffer = Self::bytes_to_f32_buffer(&buffer[node_offset..]);
-            self.nest_content.init_from_f32(&f32_buffer, nest_config);
+        // Initialize nodes from remaining words
+        let node_word_offset = 4 + map_words;
+        if node_word_offset < buffer.len() {
+            self.nest_content
+                .init_from_f32(&buffer[node_word_offset..], nest_config);
         }
 
         self
@@ -122,7 +128,7 @@ impl PlaceContent {
     /// Matches TypeScript PlaceContent.deserializeBufferToMap (DataView big-endian)
     /// Converts byte values to f32 during deserialization
     fn deserialize_buffer_to_map(
-        buffer: &[u8],
+        buffer: &[f32],
         initial_offset: usize,
         buffer_size: usize,
     ) -> HashMap<u32, Vec<f32>> {
@@ -130,83 +136,37 @@ impl PlaceContent {
         let result_offset = initial_offset + buffer_size;
         let mut offset = initial_offset;
 
-        while offset + 8 <= result_offset {
-            // Read key (big-endian u32, matching TypeScript DataView)
-            let key = u32::from_be_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]);
-            offset += 4;
+        // Each entry in the map is laid out as 32-bit words. When the buffer is
+        // provided as a `&[f32]`, the first two words for each entry are the
+        // `key` and `length` encoded as 32-bit values (their bit patterns are
+        // reinterpreted from the underlying bytes). We extract those by
+        // reading the f32 bit patterns via `to_bits()`.
+        while offset + 2 <= result_offset {
+            // Read key (u32 represented in the bit pattern of the f32 value)
+            let key = buffer[offset].to_bits();
+            offset += 1;
 
-            // Read length (big-endian u32, matching TypeScript DataView)
-            let length = u32::from_be_bytes([
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ]) as usize;
-            offset += 4;
+            // Read length in bytes (u32 represented in the bit pattern)
+            let length_bytes = buffer[offset].to_bits() as usize;
+            offset += 1;
 
-            // Read value bytes and convert to f32
-            if offset + length <= buffer.len() {
-                let f32_count = length / 4;
+            // Calculate how many f32 values the length refers to
+            let f32_count = length_bytes / 4;
+
+            if offset + f32_count <= result_offset {
                 let mut f32_values = Vec::with_capacity(f32_count);
-
                 for i in 0..f32_count {
-                    let byte_offset = offset + (i * 4);
-                    f32_values.push(f32::from_le_bytes([
-                        buffer[byte_offset],
-                        buffer[byte_offset + 1],
-                        buffer[byte_offset + 2],
-                        buffer[byte_offset + 3],
-                    ]));
+                    f32_values.push(buffer[offset + i]);
                 }
 
                 map.insert(key, f32_values);
-                offset += length;
+                offset += f32_count;
             } else {
                 break;
             }
         }
 
         map
-    }
-
-    /// Public static method to deserialize NFP cache from buffer
-    /// Reads map_buffer_size from bytes 12-16 and deserializes the map
-    pub fn deserialize_nfp_cache(buffer: &[u8]) -> HashMap<u32, Vec<f32>> {
-        if buffer.len() < 16 {
-            return HashMap::new();
-        }
-
-        // Read map_buffer_size from bytes 12-16 (big-endian u32, matching TypeScript DataView)
-        let map_buffer_size =
-            u32::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
-
-        Self::deserialize_buffer_to_map(buffer, 16, map_buffer_size)
-    }
-
-    /// Convert byte buffer to f32 buffer (matching TypeScript Float32Array view)
-    /// Creates a view of the byte data as f32 values using little-endian byte order
-    fn bytes_to_f32_buffer(buffer: &[u8]) -> Vec<f32> {
-        let f32_count = buffer.len() / 4;
-        let mut result = Vec::with_capacity(f32_count);
-
-        for i in 0..f32_count {
-            let offset = i * 4;
-            let bytes = [
-                buffer[offset],
-                buffer[offset + 1],
-                buffer[offset + 2],
-                buffer[offset + 3],
-            ];
-            // Float32Array uses little-endian (native byte order on x86/ARM)
-            result.push(f32::from_le_bytes(bytes));
-        }
-
-        result
     }
 
     // Getters

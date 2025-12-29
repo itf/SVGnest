@@ -123,7 +123,7 @@ fn test_place_paths_with_real_data() {
     }
 
     // Call place_paths
-    let result = place_paths(&mut place_content);
+    let result = place_paths(&input_buffer);
 
     println!("\nResult length: {}", result.len());
     println!("Expected length: {}", expected_output.len());

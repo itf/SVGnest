@@ -21,7 +21,7 @@ impl PairContent {
     }
 
     pub fn init(&mut self, buffer: &[f32]) {
-        self.key = buffer[2].to_bits().swap_bytes();
+        self.key = buffer[2].to_bits();
         self.is_inside = get_bits(self.key, NFP_KEY_INDICES[4], 1) != 0;
 
         self.nest_content.init(buffer, 3);
