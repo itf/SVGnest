@@ -51,12 +51,12 @@ pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16])
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_pairs() -> Uint8Array {
+pub fn wasm_packer_get_pairs() -> Float32Array {
     use crate::wasm_packer::WasmPacker;
 
     let result = WasmPacker::with_instance(|packer| packer.get_pairs());
 
-    let out = Uint8Array::new_with_length(result.len() as u32);
+    let out = Float32Array::new_with_length(result.len() as u32);
     out.copy_from(&result);
     out
 }

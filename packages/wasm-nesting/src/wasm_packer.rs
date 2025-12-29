@@ -115,7 +115,7 @@ impl WasmPacker {
         });
     }
 
-    pub fn get_pairs(&mut self) -> Vec<u8> {
+    pub fn get_pairs(&mut self) -> Vec<f32> {
         let individual = GeneticAlgorithm::with_instance(|ga| ga.get_individual(&self.nodes))
             .expect("Failed to get individual");
 
@@ -155,14 +155,8 @@ impl WasmPacker {
             buffer.extend_from_slice(pair);
         }
 
-        // Convert f32 buffer to bytes for return
-        let byte_len = buffer.len() * 4;
-        let mut byte_buffer = vec![0u8; byte_len];
-        for (i, &f) in buffer.iter().enumerate() {
-            byte_buffer[i * 4..(i + 1) * 4].copy_from_slice(&f.to_le_bytes());
-        }
-
-        byte_buffer
+        // Return the f32 buffer directly (WASM wrapper will convert to Float32Array)
+        buffer
     }
 
     pub fn get_placement_data(&mut self, generated_nfp: Vec<Vec<f32>>) -> Vec<u8> {

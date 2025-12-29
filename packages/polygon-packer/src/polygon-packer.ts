@@ -84,7 +84,7 @@ export default class PolygonPacker {
     };
 
     launchWorkers(displayCallback: DisplayCallback) {
-        const serializedPairs = this.getPairs();
+        const serializedPairs = this.#wasmNesting.wasm_packer_get_pairs();
         const pairs = PolygonPacker.deserializePairs(serializedPairs);
         this.#paralele.start(
             pairs,
@@ -178,11 +178,6 @@ export default class PolygonPacker {
         result = this.#wasmNesting.set_bits_u32(result, Number(config.useHoles), 28, 1);
 
         return result;
-    }
-
-    private getPairs(): Float32Array {
-        const result = this.#wasmNesting.wasm_packer_get_pairs();
-        return new Float32Array(result.buffer, result.byteOffset, result.byteLength / Float32Array.BYTES_PER_ELEMENT);
     }
 
     private getPlacementData(generatedNfp: Float32Array[]): Float32Array {

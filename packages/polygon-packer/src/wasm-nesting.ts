@@ -71,9 +71,9 @@ export default class WasmNesting {
         this.#wasm.wasm_packer_init(configuration, ptr0, len0, ptr1, len1);
     }
 
-    public wasm_packer_get_pairs(): Uint8Array {
+    public wasm_packer_get_pairs(): Float32Array {
         const ret = this.#wasm.wasm_packer_get_pairs();
-        return this.takeObject(ret) as Uint8Array;
+        return this.takeObject(ret) as Float32Array;
     }
 
     public wasm_packer_get_placement_data(generated_nfp: Float32Array): Uint8Array {
