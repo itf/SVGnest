@@ -62,7 +62,7 @@ pub fn wasm_packer_get_pairs() -> Float32Array {
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_placement_data(generated_nfp: &[f32]) -> Uint8Array {
+pub fn wasm_packer_get_placement_data(generated_nfp: &[f32]) -> Float32Array {
     use crate::wasm_packer::WasmPacker;
 
     // Parse the flat f32 array into Vec<Vec<f32>>
@@ -81,7 +81,7 @@ pub fn wasm_packer_get_placement_data(generated_nfp: &[f32]) -> Uint8Array {
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_data(nfp_vec));
 
-    let out = Uint8Array::new_with_length(result.len() as u32);
+    let out = Float32Array::new_with_length(result.len() as u32);
     out.copy_from(&result);
     out
 }

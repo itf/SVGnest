@@ -203,8 +203,7 @@ export default class PolygonPacker {
             offset += nfp.length;
         }
 
-        const result = this.#wasmNesting.wasm_packer_get_placement_data(buffer);
-        return new Float32Array(result.buffer, result.byteOffset, result.byteLength / Float32Array.BYTES_PER_ELEMENT);
+        return this.#wasmNesting.wasm_packer_get_placement_data(buffer);
     }
 
     private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
