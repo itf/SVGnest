@@ -203,11 +203,11 @@ impl NFPStore {
 
         // Write header as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView default
         buffer.push(f32::from_bits(THREAD_TYPE_PLACEMENT.swap_bytes()));
-        buffer.push(f32::from_bits(config.swap_bytes()));
-        buffer.push(f32::from_bits(area.to_bits().swap_bytes()));
+        buffer.push(f32::from_bits(config));
+        buffer.push(f32::from_bits(area.to_bits()));
         // Write buffer size in bytes (not f32 count) to match PlaceContent::init expectations
         let buffer_size_bytes = (nfp_buffer_f32.len() * std::mem::size_of::<f32>()) as u32;
-        buffer.push(f32::from_bits(buffer_size_bytes.swap_bytes()));
+        buffer.push(f32::from_bits(buffer_size_bytes));
 
         // Append NFP cache buffer directly as f32
         buffer.extend_from_slice(nfp_buffer_f32);

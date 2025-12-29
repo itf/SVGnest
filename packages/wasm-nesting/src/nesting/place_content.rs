@@ -39,14 +39,14 @@ impl PlaceContent {
         }
 
         // Read nest_config from bytes 4-8 (big-endian u32, matching TypeScript DataView)
-        let nest_config = u32::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]);
+        let nest_config = u32::from_le_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]);
 
         // Read area from bytes 8-12 (big-endian f32, matching TypeScript DataView)
-        self.area = f32::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]);
+        self.area = f32::from_le_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]);
 
         // Read map_buffer_size from bytes 12-16 (big-endian u32, matching TypeScript DataView)
         let map_buffer_size =
-            u32::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
+            u32::from_le_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]) as usize;
 
         // Extract rotations from nest_config (bits 9-13, 5 bits)
         self.rotations = get_bits(nest_config, 9, 5) as u32;
