@@ -32,7 +32,7 @@ pub fn set_bits_u32(source: u32, value: u16, index: u8, bit_count: u8) -> u32 {
 ///
 /// Returns: Float32Array containing result from either pair_data or place_paths
 #[wasm_bindgen]
-pub fn calculate_wasm(buffer: &[u8]) -> Float32Array {
+pub fn calculate_wasm(buffer: &[f32]) -> Float32Array {
     let result = crate::nesting::calculate::calculate(buffer);
     let out = Float32Array::new_with_length(result.len() as u32);
     out.copy_from(&result);

@@ -56,7 +56,7 @@ export default class WasmNesting {
         return ret >>> 0;
     }
 
-    public calculate_wasm(buffer: Uint8Array): Float32Array {
+    public calculate_wasm(buffer: Float32Array): Float32Array {
         const ptr0 = this.passMem(buffer, this.#wasm.__wbindgen_export_1);
         const ret = this.#wasm.calculate_wasm(ptr0, this.#vecLen);
 
