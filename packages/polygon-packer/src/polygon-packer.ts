@@ -202,28 +202,23 @@ export default class PolygonPacker {
     }
 
     private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
-        // Serialize Float32Array[] into a flat array
-        // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
-        let totalSize = 1; // count
+        // Flatten placements and build sizes array, pass both to WASM
+        let totalSize = 0;
         for (const placement of placements) {
-            totalSize += 1 + placement.length; // size + data
+            totalSize += placement.length;
         }
 
-        const buffer = new Float32Array(totalSize);
+        const flat = new Float32Array(totalSize);
+        const sizes = new Uint16Array(placements.length);
         let offset = 0;
 
-        // Write count as f32 (reinterpreted from u32)
-        buffer[offset] = new Float32Array(new Uint32Array([placements.length]).buffer)[0];
-        offset += 1;
-
-        // Write each placement
-        for (const placement of placements) {
-            buffer[offset] = new Float32Array(new Uint32Array([placement.length]).buffer)[0];
-            offset += 1;
-            buffer.set(placement, offset);
+        for (let i = 0; i < placements.length; ++i) {
+            const placement = placements[i];
+            sizes[i] = placement.length as u16;
+            flat.set(placement, offset);
             offset += placement.length;
         }
 
-        return this.#wasmNesting.wasm_packer_get_placement_result(buffer);
+        return this.#wasmNesting.wasm_packer_get_placement_result(flat, sizes);
     }
 }

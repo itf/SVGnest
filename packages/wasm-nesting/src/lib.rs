@@ -88,18 +88,18 @@ pub fn wasm_packer_get_placement_data(generated_nfp: &[f32], sizes: &[u16]) -> F
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_placement_result(placements: &[f32]) -> Uint8Array {
+pub fn wasm_packer_get_placement_result(placements: &[f32], sizes: &[u16]) -> Uint8Array {
     use crate::wasm_packer::WasmPacker;
 
-    // Parse the flat f32 array into Vec<Vec<f32>>
-    // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
-    let mut placements_vec: Vec<Vec<f32>> = Vec::new();
-    let count = placements[0].to_bits() as usize;
-    let mut offset = 1;
+    // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
+    let mut placements_vec: Vec<Vec<f32>> = Vec::with_capacity(sizes.len());
+    let mut offset = 0usize;
 
-    for _ in 0..count {
-        let size = placements[offset].to_bits() as usize;
-        offset += 1;
+    for &s in sizes {
+        let size = s as usize;
+        if offset + size > placements.len() {
+            break;
+        }
         let placement = placements[offset..offset + size].to_vec();
         offset += size;
         placements_vec.push(placement);
