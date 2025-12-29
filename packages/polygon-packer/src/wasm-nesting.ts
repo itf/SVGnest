@@ -76,10 +76,12 @@ export default class WasmNesting {
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_get_placement_data(generated_nfp: Float32Array): Float32Array {
+    public wasm_packer_get_placement_data(generated_nfp: Float32Array, sizes: Uint16Array): Float32Array {
         const ptr0 = this.passMem(generated_nfp, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
-        const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0);
+        const ptr1 = this.passMem(sizes, this.#wasm.__wbindgen_export_1);
+        const len1 = this.#vecLen;
+        const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0, ptr1, len1);
         return this.takeObject(ret) as Float32Array;
     }
 

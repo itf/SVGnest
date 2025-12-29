@@ -62,18 +62,19 @@ pub fn wasm_packer_get_pairs() -> Float32Array {
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_placement_data(generated_nfp: &[f32]) -> Float32Array {
+pub fn wasm_packer_get_placement_data(generated_nfp: &[f32], sizes: &[u16]) -> Float32Array {
     use crate::wasm_packer::WasmPacker;
 
-    // Parse the flat f32 array into Vec<Vec<f32>>
-    // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
-    let mut nfp_vec: Vec<Vec<f32>> = Vec::new();
-    let count = generated_nfp[0].to_bits() as usize;
-    let mut offset = 1;
+    // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
+    let mut nfp_vec: Vec<Vec<f32>> = Vec::with_capacity(sizes.len());
+    let mut offset = 0usize;
 
-    for _ in 0..count {
-        let size = generated_nfp[offset].to_bits() as usize;
-        offset += 1;
+    for &s in sizes {
+        let size = s as usize;
+        if offset + size > generated_nfp.len() {
+            // Defensive: stop if sizes do not match data length
+            break;
+        }
         let nfp = generated_nfp[offset..offset + size].to_vec();
         offset += size;
         nfp_vec.push(nfp);

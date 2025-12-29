@@ -181,29 +181,24 @@ export default class PolygonPacker {
     }
 
     private getPlacementData(generatedNfp: Float32Array[]): Float32Array {
-        // Serialize Float32Array[] into a flat array
-        // Format: count (u32 as f32) + [size (u32 as f32) + data] for each item
-        let totalSize = 1; // count
+        // Flatten the NFP arrays and build a sizes array to pass to WASM
+        let totalSize = 0;
         for (const nfp of generatedNfp) {
-            totalSize += 1 + nfp.length; // size + data
+            totalSize += nfp.length;
         }
 
-        const buffer = new Float32Array(totalSize);
-        let offset = 0;
+        const flat = new Float32Array(totalSize);
+        const sizes = new Uint16Array(generatedNfp.length);
+        let offset: usize = 0;
 
-        // Write count as f32 (reinterpreted from u32)
-        buffer[offset] = new Float32Array(new Uint32Array([generatedNfp.length]).buffer)[0];
-        offset += 1;
-
-        // Write each NFP
-        for (const nfp of generatedNfp) {
-            buffer[offset] = new Float32Array(new Uint32Array([nfp.length]).buffer)[0];
-            offset += 1;
-            buffer.set(nfp, offset);
+        for (let i = 0; i < generatedNfp.length; ++i) {
+            const nfp = generatedNfp[i];
+            sizes[i] = nfp.length as u16;
+            flat.set(nfp, offset);
             offset += nfp.length;
         }
 
-        return this.#wasmNesting.wasm_packer_get_placement_data(buffer);
+        return this.#wasmNesting.wasm_packer_get_placement_data(flat, sizes);
     }
 
     private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
