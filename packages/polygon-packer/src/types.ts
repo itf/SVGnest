@@ -49,3 +49,5 @@ export type usize = number;
 export type isize = number;
 
 export type u8 = number;
+
+export type MemSeg = Uint8Array | Float32Array | Uint16Array;
