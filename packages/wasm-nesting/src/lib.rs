@@ -105,8 +105,10 @@ pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16])
 pub fn wasm_packer_get_pairs() -> Float32Array {
     let result = WasmPacker::with_instance(|packer| packer.get_pairs());
 
-    let out = Float32Array::new_with_length(result.len() as u32);
-    out.copy_from(&result);
+    let flat = join_f32_chunks(&result);
+
+    let out = Float32Array::new_with_length(flat.len() as u32);
+    out.copy_from(&flat);
     out
 }
 
@@ -140,9 +142,4 @@ pub fn wasm_packer_stop() {
     WasmPacker::with_instance(|packer| {
         packer.stop();
     });
-}
-
-#[wasm_bindgen]
-pub fn wasm_packer_pair_count() -> usize {
-    WasmPacker::with_instance(|packer| packer.pair_count())
 }

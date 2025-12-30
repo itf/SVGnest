@@ -115,7 +115,7 @@ impl WasmPacker {
         });
     }
 
-    pub fn get_pairs(&mut self) -> Vec<f32> {
+    pub fn get_pairs(&mut self) -> Vec<Vec<f32>> {
         let individual = GeneticAlgorithm::with_instance(|ga| ga.get_individual(&self.nodes))
             .expect("Failed to get individual");
 
@@ -138,25 +138,7 @@ impl WasmPacker {
 
         let pairs = NFPStore::with_instance(|nfp_store| nfp_store.nfp_pairs().to_vec());
 
-        // Serialize pairs: count (f32) + [size (f32) + data] for each pair
-        let mut total_size = 1; // count as f32
-        for pair in &pairs {
-            total_size += 1 + pair.len(); // size as f32 + data
-        }
-
-        let mut buffer = Vec::with_capacity(total_size);
-
-        // Write count (as bits of u32)
-        buffer.push(f32::from_bits(pairs.len() as u32));
-
-        // Write each pair
-        for pair in &pairs {
-            buffer.push(f32::from_bits(pair.len() as u32));
-            buffer.extend_from_slice(pair);
-        }
-
-        // Return the f32 buffer directly (WASM wrapper will convert to Float32Array)
-        buffer
+        pairs
     }
 
     pub fn get_placement_data(&mut self, generated_nfp: Vec<Vec<f32>>) -> Vec<f32> {
@@ -247,10 +229,6 @@ impl WasmPacker {
         NFPStore::with_instance(|nfp_store| {
             nfp_store.clean();
         });
-    }
-
-    pub fn pair_count(&self) -> usize {
-        NFPStore::with_instance(|nfp_store| nfp_store.nfp_pairs_count())
     }
 
     fn read_uint32_from_f32(data: &[f32], index: usize) -> u32 {

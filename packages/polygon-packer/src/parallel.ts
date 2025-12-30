@@ -23,7 +23,7 @@
 
     #onSuccess: (result: ArrayBuffer[]) => void = null;
 
-    #onSpawn: (count: number) => void = null;
+    #onSpawn: (count: number, progress: number) => void = null;
 
     constructor() {
         this.#threadCount = navigator.hardwareConcurrency || 4;
@@ -40,7 +40,7 @@
         input: ArrayBuffer[],
         onSuccess: (result: ArrayBuffer[]) => void,
         onError: (error: ErrorEvent) => void,
-        onSpawn: (scount: number) => void = null
+        onSpawn: (scount: number, progress: number) => void = null
     ): boolean {
         if (input.length === 0) {
             this.onError(new ErrorEvent('Empty data'));
@@ -111,7 +111,7 @@
         this.#threadIndices[index] = threadIndex;
 
         if (this.#onSpawn !== null) {
-            this.#onSpawn(this.#startedThreads);
+            this.#onSpawn(this.#startedThreads, this.#startedThreads / this.#totalThreads);
         }
 
         const input = this.#input[threadIndex];

@@ -79,13 +79,13 @@ export default class PolygonPacker {
         }, 100) as unknown as u32;
     }
 
-    private onSpawn = (spawnCount: number): void => {
-        this.#progress = spawnCount / this.#wasmNesting.wasm_packer_pair_count();
+    private onSpawn = (_: number, progress: number): void => {
+        this.#progress = progress;
     };
 
     launchWorkers(displayCallback: DisplayCallback) {
         const serializedPairs = this.#wasmNesting.wasm_packer_get_pairs();
-        const pairs = PolygonPacker.deserializePairs(serializedPairs);
+        const pairs = PolygonPacker.splitFloat32Arrays(serializedPairs).map(pair => pair.buffer as ArrayBuffer);
         this.#paralele.start(
             pairs,
             (generatedNfp: ArrayBuffer[]) => this.onPair(generatedNfp, displayCallback),
@@ -142,30 +142,6 @@ export default class PolygonPacker {
         }
     }
 
-    private static deserializePairs(data: Float32Array): ArrayBuffer[] {
-        let offset: usize = 0;
-        let sliceIndex: usize = 1;
-        let sizeBits: u32 = 0;
-        let pairData: Float32Array = null;
-        const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-        const pairs: ArrayBuffer[] = [];
-        const countBits = view.getUint32(offset, true);
-
-        offset += Float32Array.BYTES_PER_ELEMENT;
-
-        for (let i = 0; i < countBits; ++i) {
-            sizeBits = view.getUint32(offset, true);
-            sliceIndex += 1;
-            pairData = data.slice(sliceIndex, sliceIndex + sizeBits);
-            sliceIndex += sizeBits;
-            offset = sliceIndex * Float32Array.BYTES_PER_ELEMENT;
-
-            pairs.push(pairData.buffer);
-        }
-
-        return pairs;
-    }
-
     private serializeConfig(config: NestConfig): number {
         let result: number = 0;
 
@@ -179,6 +155,8 @@ export default class PolygonPacker {
 
         return result;
     }
+
+
 
     private static joinFloat32Arrays(arrays: Float32Array[]): Float32Array {
         // Build a flat buffer where each NFP is prefixed by its size encoded as u32 bits
@@ -207,6 +185,28 @@ export default class PolygonPacker {
         }
 
         return new Float32Array(buffer);
+    }
+
+    private static splitFloat32Arrays(flat: Float32Array): Float32Array[] {
+        const result: Float32Array[] = [];
+        const view = new DataView(flat.buffer, flat.byteOffset, flat.byteLength);
+        let byteOffset: number = 0;
+
+        while (byteOffset < flat.byteLength) {
+            // read size encoded as u32 little-endian
+            const size = view.getUint32(byteOffset, true);
+            byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+            const floatByteOffset = flat.byteOffset + byteOffset;
+
+            const arr = new Float32Array(flat.buffer, floatByteOffset, size);
+            // copy to standalone array
+            result.push(arr.slice());
+
+            byteOffset += size * Float32Array.BYTES_PER_ELEMENT;
+        }
+
+        return result;
     }
 
     private getPlacementData(generatedNfp: Float32Array[]): Float32Array {

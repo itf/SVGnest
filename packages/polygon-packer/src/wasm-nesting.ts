@@ -94,11 +94,6 @@ export default class WasmNesting {
         this.#wasm.wasm_packer_stop();
     }
 
-    public wasm_packer_pair_count(): number {
-        const ret = this.#wasm.wasm_packer_pair_count();
-        return ret >>> 0;
-    }
-
     public get isInitialized(): boolean {
         return this.#isInitialized;
     }
