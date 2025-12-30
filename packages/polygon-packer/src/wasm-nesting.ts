@@ -1,4 +1,5 @@
-import { MemSeg } from "./types";
+import PlacementWrapper from "./placement-wrapper";
+import { MemSeg, NestConfig } from "./types";
 
 export default class WasmNesting {
     #wasm: any;
@@ -59,29 +60,44 @@ export default class WasmNesting {
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_init(configuration: number, polygon_data: Float32Array): void {
+    public wasm_packer_init(configuration: NestConfig, polygons: Float32Array[]): void {
+        const polygon_data = WasmNesting.joinFloat32Arrays(polygons);
+        const config = this.serializeConfig(configuration);
         const ptr0 = this.passMem(polygon_data, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
-        this.#wasm.wasm_packer_init(configuration, ptr0, len0);
+        this.#wasm.wasm_packer_init(config, ptr0, len0);
     }
 
-    public wasm_packer_get_pairs(chunkSize: number): Float32Array {
+    public wasm_nest(): PlacementWrapper {
+        const ret = this.#wasm.wasm_nest();
+        const result = this.takeObject(ret) as Uint8Array;
+
+        return new PlacementWrapper(result.buffer);
+    }
+
+    public wasm_packer_get_pairs(chunkSize: number): Float32Array[] {
         const ret = this.#wasm.wasm_packer_get_pairs(chunkSize >>> 0);
-        return this.takeObject(ret) as Float32Array;
+        const result = this.takeObject(ret) as Float32Array;
+
+        return WasmNesting.splitFloat32Arrays(result)
     }
 
-    public wasm_packer_get_placement_data(generated_nfp: Float32Array): Float32Array {
+    public wasm_packer_get_placement_data(generatedNfp: ArrayBuffer[]): Float32Array {
+        const generated_nfp = WasmNesting.mergeFloat32Arrays(generatedNfp);
         const ptr0 = this.passMem(generated_nfp, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
         const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0);
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_get_placement_result(placements: Float32Array): Uint8Array {
-        const ptr0 = this.passMem(placements, this.#wasm.__wbindgen_export_1);
+    public wasm_packer_get_placement_result(placements: ArrayBuffer[]): PlacementWrapper {
+        const placements_f32 = WasmNesting.mergeFloat32Arrays(placements);
+        const ptr0 = this.passMem(placements_f32, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
         const ret = this.#wasm.wasm_packer_get_placement_result(ptr0, len0);
-        return this.takeObject(ret) as Uint8Array;
+        const result = this.takeObject(ret) as Uint8Array;
+
+        return new PlacementWrapper(result.buffer);
     }
 
     public wasm_packer_stop(): void {
@@ -289,6 +305,88 @@ export default class WasmNesting {
                 }
             }
         };
+    }
+
+    private serializeConfig(config: NestConfig): number {
+        let result: number = 0;
+
+        // Кодуємо значення в число
+        result = this.set_bits_u32(result, config.curveTolerance * 10, 0, 4);
+        result = this.set_bits_u32(result, config.spacing, 4, 5);
+        result = this.set_bits_u32(result, config.rotations, 9, 5);
+        result = this.set_bits_u32(result, config.populationSize, 14, 7);
+        result = this.set_bits_u32(result, config.mutationRate, 21, 7);
+        result = this.set_bits_u32(result, Number(config.useHoles), 28, 1);
+
+        return result;
+    }
+
+    private static joinFloat32Arrays(arrays: Float32Array[]): Float32Array {
+        // Build a flat buffer where each array is prefixed by its size encoded as u32 bits (little-endian)
+        let totalFloats = 0;
+        for (const a of arrays) totalFloats += a.length;
+
+        const totalElements = totalFloats + arrays.length; // sizes + floats
+        const buffer = new ArrayBuffer(totalElements * Float32Array.BYTES_PER_ELEMENT);
+        const dv = new DataView(buffer);
+        const f32view = new Float32Array(buffer);
+
+        let byteOffset: number = 0;
+
+        for (const a of arrays) {
+            // write size as u32 bits (little-endian)
+            dv.setUint32(byteOffset, a.length >>> 0, true);
+            byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+            // write float words
+            f32view.set(a, byteOffset / Float32Array.BYTES_PER_ELEMENT);
+            byteOffset += a.length * Float32Array.BYTES_PER_ELEMENT;
+        }
+
+        return new Float32Array(buffer);
+    }
+
+    private static mergeFloat32Arrays(arrays: ArrayBuffer[]): Float32Array {
+        // Convert each ArrayBuffer to a Float32Array view and concatenate
+        const views: Float32Array[] = new Array(arrays.length);
+        let total = 0;
+
+        for (let i = 0; i < arrays.length; ++i) {
+            const v = new Float32Array(arrays[i]);
+            views[i] = v;
+            total += v.length;
+        }
+
+        const out = new Float32Array(total);
+        let offset = 0;
+        for (const v of views) {
+            out.set(v, offset);
+            offset += v.length;
+        }
+
+        return out;
+    }
+
+    private static splitFloat32Arrays(flat: Float32Array): Float32Array[] {
+        const result: Float32Array[] = [];
+        const view = new DataView(flat.buffer, flat.byteOffset, flat.byteLength);
+        let byteOffset: number = 0;
+
+        while (byteOffset < flat.byteLength) {
+            // read size encoded as u32 little-endian
+            const size = view.getUint32(byteOffset, true);
+            byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+            const floatByteOffset = flat.byteOffset + byteOffset;
+
+            const arr = new Float32Array(flat.buffer, floatByteOffset, size);
+            // copy to standalone array
+            result.push(arr.slice());
+
+            byteOffset += size * Float32Array.BYTES_PER_ELEMENT;
+        }
+
+        return result;
     }
 
     private static MemSegTypes = [Uint8Array, Uint16Array, Float32Array];

@@ -148,3 +148,69 @@ pub fn wasm_packer_stop() {
         packer.stop();
     });
 }
+
+/// Run a full nesting flow entirely in Rust without using workers.
+///
+/// Steps performed:
+/// 1. Initialize packer with configuration and polygon data (size-prefixed f32 array).
+/// 2. Request pairs from packer, split into chunks and run `calculate_chunk_wasm` on
+///    each chunk to produce generated NFPs.
+/// 3. Merge generated NFPs and request placement data from packer.
+/// 4. Run `calculate_chunk_wasm` on the placement data to obtain placements.
+/// 5. Ask packer to serialize the placement result and return it as `Uint8Array`.
+#[wasm_bindgen]
+pub fn wasm_nest() -> Uint8Array {
+    // Run the flow directly using the WasmPacker singleton to avoid extra
+    // wasm_* wrapper indirection and keep all intermediate data as Rust Vecs.
+    let result_bytes: Vec<u8> = WasmPacker::with_instance(|packer| {
+        // Get pairs (Vec<Vec<f32>>)
+        let pairs: Vec<Vec<f32>> = packer.get_pairs();
+
+        if pairs.is_empty() {
+            return Vec::new();
+        }
+
+        // Group pairs into chunks of `chunk_size` and run calculation for each
+        // pair to produce generated NFPs. Collect results directly into a
+        // Vec<Vec<f32>> to avoid flattening and re-splitting.
+        let mut generated_nfps: Vec<Vec<f32>> = Vec::new();
+
+        // Iterate over all pairs and calculate NFP for each directly.
+        for pair_buf in pairs.iter() {
+            let res = crate::nesting::calculate::calculate(pair_buf);
+            if !res.is_empty() {
+                generated_nfps.push(res);
+            }
+        }
+
+        if generated_nfps.is_empty() {
+            return Vec::new();
+        }
+
+        // Ask packer for placement data using the collected per-NFP Vecs
+        let placement_data: Vec<f32> = packer.get_placement_data(generated_nfps);
+
+        if placement_data.is_empty() {
+            return Vec::new();
+        }
+
+        // Compute placements by calling `calculate` directly on placement_data
+        let placements_res = crate::nesting::calculate::calculate(&placement_data);
+
+        if placements_res.is_empty() {
+            return Vec::new();
+        }
+
+        let mut placements_vec: Vec<Vec<f32>> = Vec::new();
+
+        placements_vec.push(placements_res);
+
+        let result = packer.get_placement_result(placements_vec);
+
+        result
+    });
+
+    let out = Uint8Array::new_with_length(result_bytes.len() as u32);
+    out.copy_from(&result_bytes);
+    out
+}
