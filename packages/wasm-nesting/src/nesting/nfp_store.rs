@@ -227,17 +227,12 @@ impl NFPStore {
 
         let mut result = Vec::with_capacity(total_size);
 
-        // Sort keys to ensure consistent order
-        let mut sorted_keys: Vec<&u32> = map.keys().collect();
-        sorted_keys.sort();
-
-        for key in sorted_keys {
-            let buffer = &map[key];
-
-            // Write key as f32 (reinterpreted from u32) in big-endian to match how keys are stored in cache
+        // Iterate over the map directly (unsorted) for better performance
+        for (key, buffer) in map.iter() {
+            // Write key as f32 (reinterpreted from u32)
             result.push(f32::from_bits(*key));
 
-            // Write length in bytes as f32 (reinterpreted from u32) in big-endian to match TypeScript DataView
+            // Write length in bytes as f32 (reinterpreted from u32)
             let length_bytes = (buffer.len() * std::mem::size_of::<f32>()) as u32;
             result.push(f32::from_bits(length_bytes));
 
