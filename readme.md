@@ -11,6 +11,7 @@
 -   Isolated and refactored js-clipper logic to avoid of full lib usage (it decrease package size twice).
 -   Rewrote js-clipper from dynamic lists to Data locality pattern structure.
 -   Fully ported all math logic to Rust with WASM (speed-up packing time near 10 times).
+-   Join worker data to chunks to decrees count of messages (speed-up nesting near 12%).
 -   Migrated UI to React.
 -   Added dev server for ability to run it without additional plugins.
 
