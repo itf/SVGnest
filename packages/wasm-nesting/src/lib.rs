@@ -102,13 +102,32 @@ pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16])
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_pairs() -> Float32Array {
-    let result = WasmPacker::with_instance(|packer| packer.get_pairs());
+pub fn wasm_packer_get_pairs(chunk_size: u16) -> Float32Array {
+    // Get pairs directly as Vec<Vec<f32>> from packer
+    let pairs: Vec<Vec<f32>> = WasmPacker::with_instance(|packer| packer.get_pairs());
 
-    let flat = join_f32_chunks(&result);
+    if pairs.is_empty() {
+        return Float32Array::new_with_length(0);
+    }
 
-    let out = Float32Array::new_with_length(flat.len() as u32);
-    out.copy_from(&flat);
+    // Group pairs into chunks of chunk_size
+    let mut chunk_flats: Vec<Vec<f32>> = Vec::new();
+    let mut i = 0usize;
+    while i < pairs.len() {
+        let end = usize::min(i + chunk_size as usize, pairs.len());
+        let slice = &pairs[i..end];
+        // join each chunk (each chunk is Vec<Vec<f32>>) into flat with per-pair prefixes
+        let chunk_vec: Vec<Vec<f32>> = slice.iter().cloned().collect();
+        let chunk_flat = join_f32_chunks(&chunk_vec);
+        chunk_flats.push(chunk_flat);
+        i = end;
+    }
+
+    // Join all chunk flats into final flat buffer (each chunk prefixed with its size)
+    let final_flat = join_f32_chunks(&chunk_flats);
+
+    let out = Float32Array::new_with_length(final_flat.len() as u32);
+    out.copy_from(&final_flat);
     out
 }
 

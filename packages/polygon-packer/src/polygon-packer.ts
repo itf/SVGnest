@@ -3,6 +3,7 @@ import Parallel from './parallel';
 import PlacementWrapper from './placement-wrapper';
 import { DisplayCallback, f32, NestConfig, u16, u32, usize } from './types';
 
+let startTime = 0;
 export default class PolygonPacker {
     #wasmNesting: WasmNesting = new WasmNesting();
 
@@ -17,6 +18,8 @@ export default class PolygonPacker {
     #wasmBuffer: ArrayBuffer;
 
     #workersReady = false;
+
+    #chunkSize: usize = 512;
 
     constructor() {
         this.initWasm();
@@ -55,6 +58,7 @@ export default class PolygonPacker {
         progressCallback: (progress: f32) => void,
         displayCallback: DisplayCallback
     ): void {
+        startTime = performance.now();
         const allPolygons = polygons.concat([binPolygon]);
         const sizes: u16[] = [];
         const polygonData: f32[] = [];
@@ -84,7 +88,7 @@ export default class PolygonPacker {
     };
 
     launchWorkers(displayCallback: DisplayCallback) {
-        const serializedPairs = this.#wasmNesting.wasm_packer_get_pairs();
+        const serializedPairs = this.#wasmNesting.wasm_packer_get_pairs(this.#chunkSize);
         const pairs = PolygonPacker.splitFloat32Arrays(serializedPairs).map(pair => pair.buffer as ArrayBuffer);
         this.#paralele.start(
             pairs,
@@ -99,10 +103,10 @@ export default class PolygonPacker {
     }
 
     private onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        const placements = [this.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp))).buffer];
+        const placements = PolygonPacker.joinFloat32Arrays([this.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp)))]);
 
         this.#paralele.start(
-            placements,
+            [placements.buffer as ArrayBuffer],
             (placements: ArrayBuffer[]) => this.onPlacement(placements, displayCallback),
             this.onError
         );
@@ -117,6 +121,7 @@ export default class PolygonPacker {
         const placementWrapper = new PlacementWrapper(placementResult.buffer);
 
         if (this.#isWorking) {
+            console.log(performance.now() - startTime);
             displayCallback(placementWrapper);
             this.launchWorkers(displayCallback);
         }
@@ -155,8 +160,6 @@ export default class PolygonPacker {
 
         return result;
     }
-
-
 
     private static joinFloat32Arrays(arrays: Float32Array[]): Float32Array {
         // Build a flat buffer where each NFP is prefixed by its size encoded as u32 bits
@@ -209,14 +212,28 @@ export default class PolygonPacker {
         return result;
     }
 
+    private static mergeFloat32Arrays(arrays: Float32Array[]): Float32Array {
+        let total = 0;
+        for (const a of arrays) total += a.length;
+
+        const out = new Float32Array(total);
+        let offset = 0;
+        for (const a of arrays) {
+            out.set(a, offset);
+            offset += a.length;
+        }
+
+        return out;
+    }
+
     private getPlacementData(generatedNfp: Float32Array[]): Float32Array {
-        const flat = PolygonPacker.joinFloat32Arrays(generatedNfp);
+        const flat = PolygonPacker.mergeFloat32Arrays(generatedNfp);
 
         return this.#wasmNesting.wasm_packer_get_placement_data(flat);
     }
 
     private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
-        const flat = PolygonPacker.joinFloat32Arrays(placements);
+        const flat = PolygonPacker.mergeFloat32Arrays(placements);
 
         return this.#wasmNesting.wasm_packer_get_placement_result(flat);
     }

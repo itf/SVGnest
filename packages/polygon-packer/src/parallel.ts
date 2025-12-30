@@ -26,7 +26,7 @@
     #onSpawn: (count: number, progress: number) => void = null;
 
     constructor() {
-        this.#threadCount = navigator.hardwareConcurrency || 4;
+        this.#threadCount = (navigator.hardwareConcurrency || 4) - 1;
         this.#threadsUsage = new Array(this.#threadCount);
         this.#threads = new Array(this.#threadCount);
         this.#threadIndices = new Array(this.#threadCount);
