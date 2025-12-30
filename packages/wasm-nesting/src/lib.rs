@@ -19,27 +19,6 @@ pub fn set_bits_u32(source: u32, value: u16, index: u8, bit_count: u8) -> u32 {
     set_bits(source, value, index, bit_count)
 }
 
-/// WASM wrapper for calculate function
-///
-/// Main calculation function that routes to either pair_data or place_paths
-/// based on the thread type in the buffer.
-///
-/// Port of TypeScript calculate function from worker-flow/index.ts
-///
-/// Arguments:
-/// - buffer: Uint8Array where first 4 bytes (u32 big-endian) indicate thread type
-///   - 0 = PAIR (calls pair_data)
-///   - 1 = PLACEMENT (calls place_paths)
-///
-/// Returns: Float32Array containing result from either pair_data or place_paths
-#[wasm_bindgen]
-pub fn calculate_wasm(buffer: &[f32]) -> Float32Array {
-    let result = crate::nesting::calculate::calculate(buffer);
-    let out = Float32Array::new_with_length(result.len() as u32);
-    out.copy_from(&result);
-    out
-}
-
 fn split_f32_chunks(flat_data: &[f32]) -> Vec<Vec<f32>> {
     // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
     // [size1: f32, word1, word2, ..., size2: f32, ...]
@@ -95,9 +74,10 @@ pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
 // WasmPacker WASM wrappers
 
 #[wasm_bindgen]
-pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
+pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32]) {
+    let poygons = split_f32_chunks(polygon_data);
     WasmPacker::with_instance(|packer| {
-        packer.init(configuration, polygon_data, sizes);
+        packer.init(configuration, poygons);
     });
 }
 
@@ -139,8 +119,14 @@ pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Arra
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_data(nfp_vec));
 
-    let out = Float32Array::new_with_length(result.len() as u32);
-    out.copy_from(&result);
+    let mut up_level: Vec<Vec<f32>> = Vec::new();
+
+    up_level.push(result);
+
+    let flat_result = join_f32_chunks(&up_level);
+
+    let out = Float32Array::new_with_length(flat_result.len() as u32);
+    out.copy_from(&flat_result);
     out
 }
 

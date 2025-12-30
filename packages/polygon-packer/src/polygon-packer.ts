@@ -2,8 +2,6 @@ import WasmNesting from './wasm-nesting';
 import Parallel from './parallel';
 import PlacementWrapper from './placement-wrapper';
 import { DisplayCallback, f32, NestConfig, u16, u32, usize } from './types';
-
-let startTime = 0;
 export default class PolygonPacker {
     #wasmNesting: WasmNesting = new WasmNesting();
 
@@ -58,22 +56,10 @@ export default class PolygonPacker {
         progressCallback: (progress: f32) => void,
         displayCallback: DisplayCallback
     ): void {
-        startTime = performance.now();
         const allPolygons = polygons.concat([binPolygon]);
-        const sizes: u16[] = [];
-        const polygonData: f32[] = [];
-        let size: usize = 0;
+        const polygonData: Float32Array = PolygonPacker.joinFloat32Arrays(allPolygons);
 
-        for (let i = 0; i < allPolygons.length; ++i) {
-            size = allPolygons[i].length;
-            sizes.push(size as u16);
-
-            for (let j = 0; j < size; ++j) {
-                polygonData.push(allPolygons[i][j]);
-            }
-        }
-
-        this.#wasmNesting.wasm_packer_init(this.serializeConfig(configuration), new Float32Array(polygonData), new Uint16Array(sizes));
+        this.#wasmNesting.wasm_packer_init(this.serializeConfig(configuration), polygonData);
         this.#isWorking = true;
 
         this.launchWorkers(displayCallback);
@@ -90,6 +76,7 @@ export default class PolygonPacker {
     launchWorkers(displayCallback: DisplayCallback) {
         const serializedPairs = this.#wasmNesting.wasm_packer_get_pairs(this.#chunkSize);
         const pairs = PolygonPacker.splitFloat32Arrays(serializedPairs).map(pair => pair.buffer as ArrayBuffer);
+        //console.log(pairs.map(p => p.byteLength));
         this.#paralele.start(
             pairs,
             (generatedNfp: ArrayBuffer[]) => this.onPair(generatedNfp, displayCallback),
@@ -103,10 +90,10 @@ export default class PolygonPacker {
     }
 
     private onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        const placements = PolygonPacker.joinFloat32Arrays([this.getPlacementData(generatedNfp.map(nfp => new Float32Array(nfp)))]);
+        const placementData = this.getPlacementData(generatedNfp);
 
         this.#paralele.start(
-            [placements.buffer as ArrayBuffer],
+            [placementData.buffer as ArrayBuffer],
             (placements: ArrayBuffer[]) => this.onPlacement(placements, displayCallback),
             this.onError
         );
@@ -117,11 +104,10 @@ export default class PolygonPacker {
             return;
         }
 
-        const placementResult = this.getPlacemehntResult(placements.map(data => new Float32Array(data)));
+        const placementResult = this.getPlacemehntResult(placements);
         const placementWrapper = new PlacementWrapper(placementResult.buffer);
 
         if (this.#isWorking) {
-            console.log(performance.now() - startTime);
             displayCallback(placementWrapper);
             this.launchWorkers(displayCallback);
         }
@@ -161,35 +147,6 @@ export default class PolygonPacker {
         return result;
     }
 
-    private static joinFloat32Arrays(arrays: Float32Array[]): Float32Array {
-        // Build a flat buffer where each NFP is prefixed by its size encoded as u32 bits
-        let totalFloats = 0;
-        for (const nfp of arrays) {
-            totalFloats += nfp.length;
-        }
-
-        const totalElements = totalFloats + arrays.length; // sizes + floats
-        const buffer = new ArrayBuffer(totalElements * Float32Array.BYTES_PER_ELEMENT);
-        const dv = new DataView(buffer);
-        const f32view = new Float32Array(buffer);
-
-        let byteOffset: usize = 0;
-
-        for (let i = 0; i < arrays.length; ++i) {
-            const nfp = arrays[i];
-
-            // write size as u32 bits (little-endian)
-            dv.setUint32(byteOffset, nfp.length as u32, true);
-            byteOffset += Uint32Array.BYTES_PER_ELEMENT;
-
-            // write float words
-            f32view.set(nfp, byteOffset / Float32Array.BYTES_PER_ELEMENT);
-            byteOffset += nfp.length * Float32Array.BYTES_PER_ELEMENT;
-        }
-
-        return new Float32Array(buffer);
-    }
-
     private static splitFloat32Arrays(flat: Float32Array): Float32Array[] {
         const result: Float32Array[] = [];
         const view = new DataView(flat.buffer, flat.byteOffset, flat.byteLength);
@@ -212,27 +169,59 @@ export default class PolygonPacker {
         return result;
     }
 
-    private static mergeFloat32Arrays(arrays: Float32Array[]): Float32Array {
+    private static joinFloat32Arrays(arrays: Float32Array[]): Float32Array {
+        // Build a flat buffer where each array is prefixed by its size encoded as u32 bits (little-endian)
+        let totalFloats = 0;
+        for (const a of arrays) totalFloats += a.length;
+
+        const totalElements = totalFloats + arrays.length; // sizes + floats
+        const buffer = new ArrayBuffer(totalElements * Float32Array.BYTES_PER_ELEMENT);
+        const dv = new DataView(buffer);
+        const f32view = new Float32Array(buffer);
+
+        let byteOffset: number = 0;
+
+        for (const a of arrays) {
+            // write size as u32 bits (little-endian)
+            dv.setUint32(byteOffset, a.length >>> 0, true);
+            byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+            // write float words
+            f32view.set(a, byteOffset / Float32Array.BYTES_PER_ELEMENT);
+            byteOffset += a.length * Float32Array.BYTES_PER_ELEMENT;
+        }
+
+        return new Float32Array(buffer);
+    }
+
+    private static mergeFloat32Arrays(arrays: ArrayBuffer[]): Float32Array {
+        // Convert each ArrayBuffer to a Float32Array view and concatenate
+        const views: Float32Array[] = new Array(arrays.length);
         let total = 0;
-        for (const a of arrays) total += a.length;
+
+        for (let i = 0; i < arrays.length; ++i) {
+            const v = new Float32Array(arrays[i]);
+            views[i] = v;
+            total += v.length;
+        }
 
         const out = new Float32Array(total);
         let offset = 0;
-        for (const a of arrays) {
-            out.set(a, offset);
-            offset += a.length;
+        for (const v of views) {
+            out.set(v, offset);
+            offset += v.length;
         }
 
         return out;
     }
 
-    private getPlacementData(generatedNfp: Float32Array[]): Float32Array {
+    private getPlacementData(generatedNfp: ArrayBuffer[]): Float32Array {
         const flat = PolygonPacker.mergeFloat32Arrays(generatedNfp);
 
         return this.#wasmNesting.wasm_packer_get_placement_data(flat);
     }
 
-    private getPlacemehntResult(placements: Float32Array[]): Uint8Array {
+    private getPlacemehntResult(placements: ArrayBuffer[]): Uint8Array {
         const flat = PolygonPacker.mergeFloat32Arrays(placements);
 
         return this.#wasmNesting.wasm_packer_get_placement_result(flat);

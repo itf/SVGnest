@@ -47,25 +47,23 @@ impl WasmPacker {
         INSTANCE.with(|instance| f(&mut instance.borrow_mut()))
     }
 
-    pub fn init(&mut self, configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
-        let mut offset = 0;
-        let mut polygons: Vec<&[f32]> = Vec::new();
-
-        for &size in sizes {
-            let size_usize = size as usize;
-            polygons.push(&polygon_data[offset..offset + size_usize]);
-            offset += size_usize;
+    pub fn init(&mut self, configuration: u32, mut polygon_data: Vec<Vec<f32>>) {
+        // `polygon_data` is expected as a Vec of polygons, where the last polygon
+        // is the bin. Take the last element as the bin polygon and treat the
+        // remaining polygons as the parts to place.
+        if polygon_data.is_empty() {
+            panic!("No polygon data provided to WasmPacker::init");
         }
 
         // Last polygon is the bin
-        let bin_polygon = polygons.pop().unwrap();
+        let bin_polygon = polygon_data.pop().expect("Missing bin polygon");
 
         // Deserialize config
         self.config.deserialize(configuration);
 
         // Generate bounds for bin (inline clipper call directly)
         let result = clipper_wrapper::generate_bounds(
-            bin_polygon,
+            &bin_polygon,
             self.config.spacing as i32,
             self.config.curve_tolerance as f64,
         );
@@ -81,26 +79,28 @@ impl WasmPacker {
         }
 
         // Generate tree for other polygons (inline previous helper)
-        // Flatten polygons into single array with sizes
-        let mut total_length = 0;
-        let mut sizes: Vec<u16> = Vec::new();
+        // `polygon_data` now contains all polygons except the bin. Build the
+        // sizes vector (point counts) and a flattened values array expected by
+        // the clipper tree generator.
+        let mut total_length = 0usize;
+        let mut sizes_vec: Vec<u16> = Vec::new();
 
-        for polygon in &polygons {
-            sizes.push((polygon.len() >> 1) as u16); // Point count
+        for polygon in &polygon_data {
+            sizes_vec.push((polygon.len() >> 1) as u16); // Point count
             total_length += polygon.len();
         }
 
         let mut values = vec![0f32; total_length];
         let mut offset2 = 0;
 
-        for polygon in &polygons {
+        for polygon in &polygon_data {
             values[offset2..offset2 + polygon.len()].copy_from_slice(polygon);
             offset2 += polygon.len();
         }
 
         self.nodes = clipper_wrapper::generate_tree(
             &values,
-            &sizes,
+            &sizes_vec,
             self.config.spacing as i32,
             self.config.curve_tolerance as f64,
         );

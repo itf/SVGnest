@@ -36,10 +36,6 @@ export default class WasmNesting {
     }
 
     public async init(bytes: ArrayBuffer): Promise<any> {
-        if (this.#wasm !== undefined) {
-            return;
-        }
-
         const imports = this.getImports();
 
         const module = await WebAssembly.compile(bytes);
@@ -56,13 +52,6 @@ export default class WasmNesting {
         return ret >>> 0;
     }
 
-    public calculate_wasm(buffer: Float32Array): Float32Array {
-        const ptr0 = this.passMem(buffer, this.#wasm.__wbindgen_export_1);
-        const ret = this.#wasm.calculate_wasm(ptr0, this.#vecLen);
-
-        return this.takeObject(ret) as Float32Array;
-    }
-
     public calculate_chunk_wasm(buffer: Float32Array): Float32Array {
         const ptr0 = this.passMem(buffer, this.#wasm.__wbindgen_export_1);
         const ret = this.#wasm.calculate_chunk_wasm(ptr0, this.#vecLen);
@@ -70,12 +59,10 @@ export default class WasmNesting {
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_init(configuration: number, polygon_data: Float32Array, sizes: Uint16Array): void {
+    public wasm_packer_init(configuration: number, polygon_data: Float32Array): void {
         const ptr0 = this.passMem(polygon_data, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
-        const ptr1 = this.passMem(sizes, this.#wasm.__wbindgen_export_1);
-        const len1 = this.#vecLen;
-        this.#wasm.wasm_packer_init(configuration, ptr0, len0, ptr1, len1);
+        this.#wasm.wasm_packer_init(configuration, ptr0, len0);
     }
 
     public wasm_packer_get_pairs(chunkSize: number): Float32Array {
