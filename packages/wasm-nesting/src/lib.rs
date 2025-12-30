@@ -40,33 +40,7 @@ pub fn calculate_wasm(buffer: &[f32]) -> Float32Array {
     out
 }
 
-#[wasm_bindgen]
-pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
-    let result = crate::nesting::calculate::calculate_chunk(buffer);
-    let out = Float32Array::new_with_length(result.len() as u32);
-    out.copy_from(&result);
-    out
-}
-
-// WasmPacker WASM wrappers
-
-#[wasm_bindgen]
-pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
-    WasmPacker::with_instance(|packer| {
-        packer.init(configuration, polygon_data, sizes);
-    });
-}
-
-#[wasm_bindgen]
-pub fn wasm_packer_get_pairs() -> Float32Array {
-    let result = WasmPacker::with_instance(|packer| packer.get_pairs());
-
-    let out = Float32Array::new_with_length(result.len() as u32);
-    out.copy_from(&result);
-    out
-}
-
-fn split_f32_data(flat_data: &[f32]) -> Vec<Vec<f32>> {
+fn split_f32_chunks(flat_data: &[f32]) -> Vec<Vec<f32>> {
     // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
     // [size1: f32, word1, word2, ..., size2: f32, ...]
     let mut nfp_vec: Vec<Vec<f32>> = Vec::new();
@@ -92,11 +66,55 @@ fn split_f32_data(flat_data: &[f32]) -> Vec<Vec<f32>> {
     nfp_vec
 }
 
+fn join_f32_chunks(data: &Vec<Vec<f32>>) -> Vec<f32> {
+    // Flatten results into f32 vector with sizes encoded as u32 bits
+    let mut flat: Vec<f32> = Vec::new();
+    for item in data {
+        flat.push(f32::from_bits(item.len() as u32));
+        flat.extend_from_slice(&item);
+    }
+
+    flat
+}
+
+#[wasm_bindgen]
+pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
+    // Reuse helper to split incoming flat buffer into chunks
+    let chunks: Vec<Vec<f32>> = split_f32_chunks(buffer);
+
+    let results = crate::nesting::calculate::calculate_chunk(chunks);
+
+    // Flatten results into f32 vector with sizes encoded as u32 bits
+    let flat: Vec<f32> = join_f32_chunks(&results);
+
+    let out = Float32Array::new_with_length(flat.len() as u32);
+    out.copy_from(&flat);
+    out
+}
+
+// WasmPacker WASM wrappers
+
+#[wasm_bindgen]
+pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
+    WasmPacker::with_instance(|packer| {
+        packer.init(configuration, polygon_data, sizes);
+    });
+}
+
+#[wasm_bindgen]
+pub fn wasm_packer_get_pairs() -> Float32Array {
+    let result = WasmPacker::with_instance(|packer| packer.get_pairs());
+
+    let out = Float32Array::new_with_length(result.len() as u32);
+    out.copy_from(&result);
+    out
+}
+
 #[wasm_bindgen]
 pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Array {
     // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
     // [size1: f32, word1, word2, ..., size2: f32, ...]
-    let nfp_vec: Vec<Vec<f32>> = split_f32_data(&generated_nfp_flat);
+    let nfp_vec: Vec<Vec<f32>> = split_f32_chunks(&generated_nfp_flat);
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_data(nfp_vec));
 
@@ -108,7 +126,7 @@ pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Arra
 #[wasm_bindgen]
 pub fn wasm_packer_get_placement_result(placements_flat: &[f32]) -> Uint8Array {
     // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
-    let placements_vec: Vec<Vec<f32>> = split_f32_data(&placements_flat);
+    let placements_vec: Vec<Vec<f32>> = split_f32_chunks(&placements_flat);
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_result(placements_vec));
 
