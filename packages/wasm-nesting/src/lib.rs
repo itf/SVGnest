@@ -12,6 +12,7 @@ pub mod utils;
 pub mod wasm_packer;
 
 use crate::utils::bit_ops::*;
+use crate::wasm_packer::WasmPacker;
 
 #[wasm_bindgen]
 pub fn set_bits_u32(source: u32, value: u16, index: u8, bit_count: u8) -> u32 {
@@ -39,12 +40,18 @@ pub fn calculate_wasm(buffer: &[f32]) -> Float32Array {
     out
 }
 
+#[wasm_bindgen]
+pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
+    let result = crate::nesting::calculate::calculate_chunk(buffer);
+    let out = Float32Array::new_with_length(result.len() as u32);
+    out.copy_from(&result);
+    out
+}
+
 // WasmPacker WASM wrappers
 
 #[wasm_bindgen]
 pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16]) {
-    use crate::wasm_packer::WasmPacker;
-
     WasmPacker::with_instance(|packer| {
         packer.init(configuration, polygon_data, sizes);
     });
@@ -52,8 +59,6 @@ pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32], sizes: &[u16])
 
 #[wasm_bindgen]
 pub fn wasm_packer_get_pairs() -> Float32Array {
-    use crate::wasm_packer::WasmPacker;
-
     let result = WasmPacker::with_instance(|packer| packer.get_pairs());
 
     let out = Float32Array::new_with_length(result.len() as u32);
@@ -61,24 +66,37 @@ pub fn wasm_packer_get_pairs() -> Float32Array {
     out
 }
 
-#[wasm_bindgen]
-pub fn wasm_packer_get_placement_data(generated_nfp: &[f32], sizes: &[u16]) -> Float32Array {
-    use crate::wasm_packer::WasmPacker;
-
-    // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
-    let mut nfp_vec: Vec<Vec<f32>> = Vec::with_capacity(sizes.len());
+fn split_f32_data(flat_data: &[f32]) -> Vec<Vec<f32>> {
+    // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
+    // [size1: f32, word1, word2, ..., size2: f32, ...]
+    let mut nfp_vec: Vec<Vec<f32>> = Vec::new();
     let mut offset = 0usize;
+    let len = flat_data.len();
 
-    for &s in sizes {
-        let size = s as usize;
-        if offset + size > generated_nfp.len() {
+    while offset < len {
+        // Read size as f32 and cast to usize using its bit representation
+        let size_f = flat_data[offset];
+        let size = size_f.to_bits() as usize;
+        offset += 1;
+
+        if offset + size > len {
             // Defensive: stop if sizes do not match data length
             break;
         }
-        let nfp = generated_nfp[offset..offset + size].to_vec();
+
+        let nfp = flat_data[offset..offset + size].to_vec();
         offset += size;
         nfp_vec.push(nfp);
     }
+
+    nfp_vec
+}
+
+#[wasm_bindgen]
+pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Array {
+    // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
+    // [size1: f32, word1, word2, ..., size2: f32, ...]
+    let nfp_vec: Vec<Vec<f32>> = split_f32_data(&generated_nfp_flat);
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_data(nfp_vec));
 
@@ -88,22 +106,9 @@ pub fn wasm_packer_get_placement_data(generated_nfp: &[f32], sizes: &[u16]) -> F
 }
 
 #[wasm_bindgen]
-pub fn wasm_packer_get_placement_result(placements: &[f32], sizes: &[u16]) -> Uint8Array {
-    use crate::wasm_packer::WasmPacker;
-
+pub fn wasm_packer_get_placement_result(placements_flat: &[f32]) -> Uint8Array {
     // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
-    let mut placements_vec: Vec<Vec<f32>> = Vec::with_capacity(sizes.len());
-    let mut offset = 0usize;
-
-    for &s in sizes {
-        let size = s as usize;
-        if offset + size > placements.len() {
-            break;
-        }
-        let placement = placements[offset..offset + size].to_vec();
-        offset += size;
-        placements_vec.push(placement);
-    }
+    let placements_vec: Vec<Vec<f32>> = split_f32_data(&placements_flat);
 
     let result = WasmPacker::with_instance(|packer| packer.get_placement_result(placements_vec));
 
@@ -114,8 +119,6 @@ pub fn wasm_packer_get_placement_result(placements: &[f32], sizes: &[u16]) -> Ui
 
 #[wasm_bindgen]
 pub fn wasm_packer_stop() {
-    use crate::wasm_packer::WasmPacker;
-
     WasmPacker::with_instance(|packer| {
         packer.stop();
     });
@@ -123,7 +126,5 @@ pub fn wasm_packer_stop() {
 
 #[wasm_bindgen]
 pub fn wasm_packer_pair_count() -> usize {
-    use crate::wasm_packer::WasmPacker;
-
     WasmPacker::with_instance(|packer| packer.pair_count())
 }

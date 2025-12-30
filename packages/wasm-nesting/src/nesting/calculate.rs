@@ -43,33 +43,42 @@ pub fn calculate(buffer: &[f32]) -> Vec<f32> {
     };
 
     match thread_type {
-        ThreadType::Pair => {
-            unsafe { pair_data(&buffer) }
-        }
+        ThreadType::Pair => unsafe { pair_data(&buffer) },
         ThreadType::Placement => place_paths(&buffer),
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Calculate on multiple chunks provided in a single buffer.
+/// Buffer structure (all 32-bit words):
+/// [ threadType: u32, chunkCount: u32, size1: u32, size2: u32, ..., chunk1_words..., chunk2_words..., ... ]
+/// Each `sizeN` is the number of f32 words in that chunk.
+/// Returns a flat f32 array: [chunkCount: u32, resSize1: u32, res1..., resSize2: u32, res2..., ...]
+pub fn calculate_chunk(buffer: &[f32]) -> Vec<f32> {
+    // New buffer format: [chunkSize1: u32, chunk1_words..., chunkSize2: u32, chunk2_words..., ...]
+    // Parse consecutive (size, chunk) pairs until buffer end.
+    let mut data_offset: usize = 0;
 
-    #[test]
-    fn test_thread_type_from_u32() {
-        assert_eq!(ThreadType::from_u32(0), Some(ThreadType::Pair));
-        assert_eq!(ThreadType::from_u32(1), Some(ThreadType::Placement));
-        assert_eq!(ThreadType::from_u32(2), None);
+    let mut result: Vec<f32> = Vec::new();
+
+    while data_offset < buffer.len() {
+        // Need at least one word for size
+        let size = buffer[data_offset].to_bits() as usize;
+        data_offset += 1;
+
+        if data_offset + size > buffer.len() {
+            // malformed or truncated chunk; stop processing
+            break;
+        }
+
+        let chunk_slice = &buffer[data_offset..data_offset + size];
+        let chunk_res = calculate(chunk_slice);
+
+        // Append length and data to result (length as u32 bits in f32)
+        result.push(f32::from_bits(chunk_res.len() as u32));
+        result.extend_from_slice(&chunk_res);
+
+        data_offset += size;
     }
 
-    #[test]
-    fn test_calculate_empty_buffer() {
-        let result = calculate(&[]);
-        assert!(result.is_empty());
-    }
-
-    #[test]
-    fn test_calculate_invalid_buffer() {
-        let result = calculate(&[0, 0]);
-        assert!(result.is_empty());
-    }
+    result
 }

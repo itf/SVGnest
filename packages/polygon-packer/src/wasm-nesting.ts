@@ -76,21 +76,17 @@ export default class WasmNesting {
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_get_placement_data(generated_nfp: Float32Array, sizes: Uint16Array): Float32Array {
+    public wasm_packer_get_placement_data(generated_nfp: Float32Array): Float32Array {
         const ptr0 = this.passMem(generated_nfp, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
-        const ptr1 = this.passMem(sizes, this.#wasm.__wbindgen_export_1);
-        const len1 = this.#vecLen;
-        const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0, ptr1, len1);
+        const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0);
         return this.takeObject(ret) as Float32Array;
     }
 
-    public wasm_packer_get_placement_result(placements: Float32Array, sizes: Uint16Array): Uint8Array {
+    public wasm_packer_get_placement_result(placements: Float32Array): Uint8Array {
         const ptr0 = this.passMem(placements, this.#wasm.__wbindgen_export_1);
         const len0 = this.#vecLen;
-        const ptr1 = this.passMem(sizes, this.#wasm.__wbindgen_export_1);
-        const len1 = this.#vecLen;
-        const ret = this.#wasm.wasm_packer_get_placement_result(ptr0, len0, ptr1, len1);
+        const ret = this.#wasm.wasm_packer_get_placement_result(ptr0, len0);
         return this.takeObject(ret) as Uint8Array;
     }
 
@@ -243,9 +239,9 @@ export default class WasmNesting {
                     const ret = new Float32Array(this.getObject<ArrayBuffer>(arg0), arg1 >>> 0, arg2 >>> 0);
                     return this.addHeapObject(ret);
                 },
-                __wbg_newwithlength_5a5efe313cfd59f1: (arg0: number) => 
+                __wbg_newwithlength_5a5efe313cfd59f1: (arg0: number) =>
                     this.addHeapObject(new Float32Array(arg0 >>> 0)),
-                __wbg_newwithlength_a381634e90c276d4: (arg0: number) => 
+                __wbg_newwithlength_a381634e90c276d4: (arg0: number) =>
                     this.addHeapObject(new Uint8Array(arg0 >>> 0)),
                 __wbg_node_905d3e251edff8a2: (arg0: number) => {
                     const ret = this.getObject<NodeJS.ProcessVersions>(arg0).node;
@@ -283,7 +279,7 @@ export default class WasmNesting {
                     return this.addHeapObject(ret);
                 },
                 __wbindgen_is_function: (arg0: number) => this.checkObject(arg0, 'function'),
-                __wbindgen_is_object: (arg0: number): boolean => 
+                __wbindgen_is_object: (arg0: number): boolean =>
                     this.checkObject(arg0, 'object') && this.getObject(arg0) !== null,
                 __wbindgen_is_string: (arg0: number): boolean => this.checkObject(arg0, 'string'),
                 __wbindgen_is_undefined: (arg0: number): boolean => this.checkObject(arg0, 'undefined'),
