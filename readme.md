@@ -14,6 +14,7 @@
 -   Join worker data to chunks to decrees count of messages (speed-up nesting near 12%).
 -   Migrated UI to React.
 -   Added dev server for ability to run it without additional plugins.
+-   Added singlethread realization via SingleThreadPacker class from polygon-packer package.
 
 ## Current TODO's
 
