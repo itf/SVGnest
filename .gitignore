@@ -1,7 +1,9 @@
 # Ignore pkg and target directories in all packages
 packages/**/pkg
 packages/**/target
+packages/**/.turbo
 
+.turbo
 .history
 .DS_Store
 .vscode
