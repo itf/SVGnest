@@ -4,22 +4,22 @@
  * Simple development server with COOP/COEP headers for SharedArrayBuffer support
  *
  * Usage:
- *   node dev-server.js [port] [directory]
+ *   node dev-server.ts [port] [directory]
  *
  * Example:
- *   node dev-server.js 8080 .
+ *   node dev-server.ts 8080 .
  *   npm run dev
  */
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { URL } = require('url');
+import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
+import { URL } from 'url';
 
-const PORT = process.argv[2] || 8080;
-const ROOT_DIR = process.argv[3] || '.';
+const PORT: number = parseInt(process.argv[2] || '8080', 10);
+const ROOT_DIR: string = process.argv[3] || '.';
 
-const MIME_TYPES = {
+const MIME_TYPES: { [key: string]: string } = {
     '.html': 'text/html',
     '.js': 'application/javascript',
     '.mjs': 'application/javascript',
@@ -35,22 +35,23 @@ const MIME_TYPES = {
     '.xml': 'application/xml'
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
     // Parse URL
-    const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-    let pathname = decodeURIComponent(parsedUrl.pathname);
+    const host = req.headers.host || 'localhost';
+    const parsedUrl = new URL(req.url || '', `http://${host}`);
+    let pathname: string = decodeURIComponent(parsedUrl.pathname);
 
     // Default to index.html for root
     if (pathname === '/') {
         pathname = '/index.html';
     }
 
-    const filePath = path.join(ROOT_DIR, pathname);
-    const ext = path.extname(filePath).toLowerCase();
-    const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+    const filePath: string = path.join(ROOT_DIR, pathname);
+    const ext: string = path.extname(filePath).toLowerCase();
+    const mimeType: string = MIME_TYPES[ext] || 'application/octet-stream';
 
     // Read and serve file
-    fs.readFile(filePath, (err, data) => {
+    fs.readFile(filePath, (err: NodeJS.ErrnoException | null, data: Buffer) => {
         if (err) {
             if (err.code === 'ENOENT') {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -59,10 +60,10 @@ const server = http.createServer((req, res) => {
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end('500 Internal Server Error');
             }
-            console.error(`${req.method} ${pathname} - ${err.code}`);
+            console.error(`${req.method || 'UNKNOWN'} ${pathname} - ${err.code}`);
         } else {
             // Set COOP/COEP headers for SharedArrayBuffer support
-            const headers = {
+            const headers: { [key: string]: string } = {
                 'Content-Type': mimeType,
                 'Cross-Origin-Opener-Policy': 'same-origin',
                 'Cross-Origin-Embedder-Policy': 'require-corp',
@@ -76,7 +77,7 @@ const server = http.createServer((req, res) => {
 
             res.writeHead(200, headers);
             res.end(data);
-            console.log(`${req.method} ${pathname} - 200`);
+            console.log(`${req.method || 'UNKNOWN'} ${pathname} - 200`);
         }
     });
 });
