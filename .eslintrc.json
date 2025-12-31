@@ -1,6 +1,5 @@
 {
     "env": { "browser": true, "es6": true, "node": true, "worker": true },
-    "ignores": ["dist/*", "node_modules/*"],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
