@@ -13,7 +13,7 @@
         "watch": "turbo run watch",
         "lint": "turbo run lint",
         "lint:fix": "turbo run lint:fix",
-        "dev": "node dev-server.js 8080 ."
+        "dev": "npx ts-node dev-server.ts 8080 ."
     },
     "repository": {
         "type": "git",

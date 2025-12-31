@@ -7,6 +7,6 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "build": "node scripts/wasm-build.js"
+    "build": "npx ts-node scripts/wasm-build.ts"
   }
 }
