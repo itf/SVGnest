@@ -1,6 +1,12 @@
 import { memo } from 'react';
 import { COLORS } from './types';
 
+/**
+ * Check icon component.
+ *
+ * @group Assets
+ * @component
+ */
 const CheckIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16">
         <rect width="16" height="16" rx="4" fill={COLORS.PRIMARY} />

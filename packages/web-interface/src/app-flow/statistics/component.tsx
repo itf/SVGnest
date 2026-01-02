@@ -7,6 +7,15 @@ import { toPercents } from '../helpers';
 import { StatisticsProps } from './types';
 import './styles.scss';
 
+/**
+ * Statistics component.
+ *
+ * Displays real-time progress, performance metrics, and nesting statistics
+ * during the SVG processing operation.
+ *
+ * @group App Flow
+ * @component
+ */
 const Statistics: FC<StatisticsProps> = ({ progress, estimate, iterations, placed, total, efficiency, isWorking }) => {
     const { t } = useTranslation();
 

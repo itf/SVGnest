@@ -12,6 +12,15 @@ const TYPE_TO_COMPONENT = new Map<INPUT_TYPE, FC<InputProps>>([
     [INPUT_TYPE.NUMBER, NumberInput]
 ]);
 
+/**
+ * Setting input component.
+ *
+ * Renders different input types (checkbox, number) for application settings
+ * with labels and help text.
+ *
+ * @group App Flow
+ * @component
+ */
 const SettingInput: FC<SettingInputProps> = ({ id, type, value, onChange, min, max, step }) => {
     const Component = useMemo(() => TYPE_TO_COMPONENT.get(type), [type]);
     const { t } = useTranslation();

@@ -5,6 +5,15 @@ import { SplashScreen } from './splash-screen';
 import { AppFlow } from './app-flow';
 import { FADE_STATUS } from './types';
 
+/**
+ * Main application component.
+ *
+ * Manages the overall application state and transitions between
+ * the splash screen and the main application flow.
+ *
+ * @group Main Application
+ * @component
+ */
 const App: FC = () => {
     const [isApp, setApp] = useState(false);
     const [isDemoMode, setDemoMode] = useState(false);

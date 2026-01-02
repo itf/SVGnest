@@ -12,6 +12,16 @@ interface SharedDrawerProps {
     children: ReactNode[];
 }
 
+/**
+ * Shared drawer component.
+ *
+ * Provides a slide-in drawer interface for displaying content like
+ * settings, help, or additional information. Supports both vertical
+ * and horizontal orientations based on screen layout.
+ *
+ * @group Shared Components
+ * @component
+ */
 const SharedDrawer: FC<SharedDrawerProps> = ({ isOpen, onClose, closeAction, children, title }) => {
     const { isLendscape } = useResize();
     const [{ visible, animating }, setState] = useState(INITIAL_STATE);

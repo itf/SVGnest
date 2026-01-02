@@ -7,6 +7,15 @@ import { BUTTON_CONFIG } from './constants';
 import { useResize } from '../hooks';
 import './styles.scss';
 
+/**
+ * Button group component.
+ *
+ * Renders a collection of action buttons with icons and optional labels.
+ * Adapts to mobile/desktop layouts and supports disabled/hidden states.
+ *
+ * @group Shared Components
+ * @component
+ */
 const ButtonGroup: FC<ButtonGroupProps> = ({
     buttonsConfig,
     onClick,

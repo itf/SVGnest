@@ -2,7 +2,8 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useReducer, useRef } from
 
 import { BUTTON_TO_REDUCER_ACTION, INITIAL_STATE, VIEW_BOX_ATTRIBUTES } from './constants';
 import reducer from './reducer';
-import { PlacementWrapper, PREDEFINED_ID, REDUCER_ACTION, SETTING_ID } from './types';
+import { PlacementWrapper } from 'svg-parser/src/types';
+import { PREDEFINED_ID, REDUCER_ACTION, SETTING_ID } from './types';
 import { getModifiedButtons } from './helpers';
 import { BUTTON_ACTION } from '../types';
 

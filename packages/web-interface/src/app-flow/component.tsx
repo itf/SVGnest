@@ -10,6 +10,16 @@ import { Statistics } from './statistics';
 import useAppFlow from './hooks';
 import './styles.scss';
 
+/**
+ * Main application flow component.
+ *
+ * Provides the core SVG nesting interface with controls for uploading,
+ * processing, and downloading SVG files. Includes settings, statistics,
+ * and real-time progress tracking.
+ *
+ * @group App Flow
+ * @component
+ */
 const AppFlow: FC<AppFlowProps> = ({ onClose, isDemoMode }) => {
     const {
         handleChangeSettings,

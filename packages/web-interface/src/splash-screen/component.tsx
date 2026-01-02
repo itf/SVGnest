@@ -10,6 +10,15 @@ import { Logo } from '../assets';
 
 import './styles.scss';
 
+/**
+ * Splash screen component.
+ *
+ * Displays the initial application interface with options to start
+ * a demo, open files, or access help information.
+ *
+ * @group Splash Screen
+ * @component
+ */
 const SplashScreen: FC<SplashScreenProps> = ({ onOpenApp }) => {
     const { t } = useTranslation();
     const [isDrawerOpen, setDrawerOpen] = useState(false);

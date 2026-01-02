@@ -1,6 +1,7 @@
 {
     "extends": "../../tsconfig.json",
     "include": ["./src/**/*"],
+    "exclude": ["./src/**/*.scss", "./src/**/*.worker.ts"],
     "compilerOptions": {
         "jsx": "react-jsx",
         "allowUmdGlobalAccess": true,
