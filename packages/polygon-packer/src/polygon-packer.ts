@@ -1,6 +1,27 @@
 import Parallel from './parallel';
 import { DisplayCallback, f32, NestConfig, u32, usize } from './types';
 import BasePacker from './base-packer';
+
+/**
+ * Multi-threaded polygon packer that uses Web Workers for parallel NFP calculation and placement.
+ * 
+ * This packer distributes the computational workload across multiple worker threads,
+ * making it suitable for large-scale nesting operations. It provides real-time progress
+ * updates and asynchronous result callbacks.
+ * 
+ * @example
+ * ```typescript
+ * const packer = new PolygonPacker();
+ * 
+ * packer.start(
+ *   config,
+ *   polygons,
+ *   binPolygon,
+ *   (progress) => console.log(`Progress: ${progress}%`),
+ *   (placement) => console.log('New placement:', placement)
+ * );
+ * ```
+ */
 export default class PolygonPacker extends BasePacker {
     #isWorking: boolean = false;
 
@@ -14,8 +35,30 @@ export default class PolygonPacker extends BasePacker {
 
     #chunkSize: usize = 512;
 
-    // progressCallback is called when progress is made
-    // displayCallback is called when a new placement has been made
+    /**
+     * Starts the multi-threaded nesting process.
+     * 
+     * This method initializes the nesting algorithm and launches worker threads
+     * to perform NFP calculations and placements in parallel. Progress and results
+     * are reported through callback functions.
+     * 
+     * @param configuration - Nesting configuration parameters (spacing, rotations, etc.)
+     * @param polygons - Array of polygons to nest, represented as Float32Arrays
+     * @param binPolygon - The container polygon (bin) to nest shapes into
+     * @param progressCallback - Optional callback invoked periodically with progress percentage (0-100)
+     * @param displayCallback - Optional callback invoked when a new placement is found
+     * 
+     * @example
+     * ```typescript
+     * packer.start(
+     *   { spacing: 0, rotations: 4 },
+     *   [polygon1, polygon2],
+     *   binPolygon,
+     *   (progress) => updateProgressBar(progress),
+     *   (result) => renderPlacement(result)
+     * );
+     * ```
+     */
     public start(
         configuration: NestConfig,
         polygons: Float32Array[],
@@ -32,6 +75,12 @@ export default class PolygonPacker extends BasePacker {
         this.#workerTimer = setInterval(() => progressCallback(this.#progress), 100) as unknown as u32;
     }
 
+    /**
+     * Stops the nesting process and terminates all worker threads.
+     * 
+     * @param isClean - If true, cleans up internal state and resets the nesting algorithm.
+     *                  If false, only stops workers but preserves state for potential resume.
+     */
     public stop(isClean: boolean): void {
         if (!this.#isWorking) {
             return;

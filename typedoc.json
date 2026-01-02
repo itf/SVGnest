@@ -1,0 +1,36 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "packages/polygon-packer/src/docs.ts",
+    "packages/svg-parser/src/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "out": "docs",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.worker.ts",
+    "**/nest.worker.ts"
+  ],
+  "tsconfig": "./tsconfig.json",
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "excludeInternal": false,
+  "readme": "readme.md",
+  "name": "SVGnest TypeScript",
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "validation": {
+    "notExported": false,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

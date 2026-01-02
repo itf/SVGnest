@@ -227,7 +227,7 @@ export default class WasmNesting {
                 __wbg_length_3b4f022188ae8db6: (arg0: usize): usize => this.#getObject<Uint8Array>(arg0).length,
                 __wbg_length_a446193dc22c12f8: (arg0: usize): usize => this.#getObject<Uint8Array>(arg0).length,
                 __wbg_msCrypto_a61aeb35a24c1329: (arg0: usize): usize => {
-                    const ret = this.#getObject<Window>(arg0).msCrypto;
+                    const ret = (this.#getObject<Window>(arg0) as any).msCrypto;
                     return this.#addHeapObject(ret);
                 },
                 __wbg_new_a12002a7f91c75be: (arg0: usize): usize => {
@@ -259,7 +259,7 @@ export default class WasmNesting {
                     return this.#addHeapObject(ret);
                 },
                 __wbg_randomFillSync_ac0988aba3254290: (...args: unknown[]) => this.#handleError((arg0: usize, arg1: usize): void => {
-                    this.#getObject<Sign>(arg0).randomFillSync(this.#takeObject(arg1));
+                    (this.#getObject<any>(arg0) as any).randomFillSync(this.#takeObject(arg1));
                 }, args),
                 __wbg_require_60cc747a6bc5215a: (...args: unknown[]) => {
                     return this.#handleError((): usize => {

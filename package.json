@@ -1,6 +1,6 @@
 {
     "name": "svgnest.ts",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "description": "Typescript version of https://github.com/Jack000/SVGnest migrated to webpack and splitted to packages.",
     "private": true,
     "packageManager": "npm@11.0.0",
@@ -13,6 +13,8 @@
         "watch": "turbo run watch",
         "lint": "turbo run lint",
         "lint:fix": "turbo run lint:fix",
+        "docs": "typedoc",
+        "docs:serve": "npm run docs && npx http-server docs -p 8081",
         "dev": "npx ts-node dev-server.ts 8080 ."
     },
     "repository": {
@@ -63,6 +65,7 @@
         "ts-jest": "^29.4.5",
         "tsx": "^4.7.0",
         "turbo": "^2.7.2",
+        "typedoc": "^0.25.7",
         "typescript": "^5.4.5",
         "vite": "^5.0.12"
     },
