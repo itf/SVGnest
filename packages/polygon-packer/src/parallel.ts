@@ -1,7 +1,9 @@
-﻿export default class Parallel {
+﻿import { f32, u32, usize } from "./types";
+
+export default class Parallel {
     #threadsUsage: boolean[];
 
-    #threadCount: number = 1;
+    #threadCount: usize = 1;
 
     #threads: Worker[];
 
@@ -9,21 +11,21 @@
 
     #output: ArrayBuffer[] = null;
 
-    #threadIndices: number[];
+    #threadIndices: usize[];
 
     #isTerminated: boolean = true;
 
-    #iterationCount: number = 0;
+    #iterationCount: usize = 0;
 
-    #startedThreads: number = 0;
+    #startedThreads: usize = 0;
 
-    #totalThreads: number = 0;
+    #totalThreads: usize = 0;
 
     #onError: (error: ErrorEvent) => void = null;
 
     #onSuccess: (result: ArrayBuffer[]) => void = null;
 
-    #onSpawn: (count: number, progress: number) => void = null;
+    #onSpawn: (count: usize, progress: f32) => void = null;
 
     constructor() {
         this.#threadCount = (navigator.hardwareConcurrency || 4) - 1;
@@ -40,7 +42,7 @@
         input: ArrayBuffer[],
         onSuccess: (result: ArrayBuffer[]) => void,
         onError: (error: ErrorEvent) => void,
-        onSpawn: (scount: number, progress: number) => void = null
+        onSpawn: (count: u32, progress: f32) => void = null
     ): boolean {
         if (input.length === 0) {
             this.#handleError(new ErrorEvent('Empty data'));
@@ -55,13 +57,12 @@
         this.#input = input;
         this.#totalThreads = input.length;
         this.#output = new Array(this.#totalThreads);
-        let i: number = 0;
 
         this.#threadsUsage.fill(false);
         this.#threadIndices.fill(-1);
 
         if (this.#isTerminated) {
-            for (i = 0; i < this.#threadCount; ++i) {
+            for (let i = 0; i < this.#threadCount; ++i) {
                 this.#threads[i] = new Worker('dist/polygon-packer.calc.js', { type: 'module' });
             }
 
@@ -76,9 +77,7 @@
     }
 
     public terminate(): void {
-        let i: number = 0;
-
-        for (i = 0; i < this.#threadCount; ++i) {
+        for (let i = 0; i < this.#threadCount; ++i) {
             if (this.#threads[i] !== null) {
                 this.#threads[i].terminate();
                 this.#threads[i] = null;
@@ -90,12 +89,12 @@
         this.#isTerminated = true;
     }
 
-    public get threadCount(): number {
+    public get threadCount(): usize {
         return this.#threadCount;
     }
 
     #trigger(): boolean {
-        const index: number = this.#threadsUsage.indexOf(false);
+        const index: usize = this.#threadsUsage.indexOf(false);
 
         if (index === -1) {
             return false;
@@ -104,7 +103,7 @@
         this.#threadsUsage[index] = true;
 
         const thread = this.#threads[index];
-        const threadIndex: number = this.#startedThreads;
+        const threadIndex: usize = this.#startedThreads;
 
         ++this.#startedThreads;
 
@@ -144,9 +143,9 @@
         this.#onError(error);
     };
 
-    #clean(target: Worker): number {
-        let i: number = 0;
-
+    #clean(target: Worker): usize {
+        let i: usize = 0;
+        
         for (i = 0; i < this.#threadCount; ++i) {
             if (this.#threads[i] === target) {
                 break;

@@ -1,5 +1,5 @@
 import { deserializeSourceItems, flattenTree, readUint32FromF32 } from './helpers';
-import { IPlacementWrapper, SourceItem, FlattenedData } from './types';
+import { IPlacementWrapper, SourceItem, FlattenedData, usize, u8, u32, u16, f32 } from './types';
 
 export default class PlacementWrapper implements IPlacementWrapper {
     #buffer: ArrayBuffer;
@@ -10,17 +10,17 @@ export default class PlacementWrapper implements IPlacementWrapper {
 
     #memSeg: Float32Array;
 
-    #offset: number;
+    #offset: usize;
 
-    #size: number;
+    #size: usize;
 
-    #pointData: number;
+    #pointData: u32;
 
-    #pointOffset: number;
+    #pointOffset: usize;
 
-    #placementCount: number;
+    #placementCount: u32;
 
-    #angleSplit: number;
+    #angleSplit: u8;
 
     #sources: SourceItem[];
 
@@ -39,13 +39,13 @@ export default class PlacementWrapper implements IPlacementWrapper {
         this.#pointOffset = 0;
     }
 
-    public bindPlacement(index: number): void {
+    public bindPlacement(index: usize): void {
         this.#placement = readUint32FromF32(this.#memSeg, 2 + index);
         this.#offset = this.#placement >>> 16;
         this.#size = this.#placement & ((1 << 16) - 1);
     }
 
-    public bindData(index: number): number {
+    public bindData(index: usize): u32 {
         this.#pointData = readUint32FromF32(this.#memSeg, this.#offset + index);
         this.#pointOffset = this.#offset + this.#size + (index << 1);
 
@@ -58,47 +58,47 @@ export default class PlacementWrapper implements IPlacementWrapper {
         return source.children.length ? flattenTree(source.children, true) : null;
     }
 
-    public get placementCount(): number {
+    public get placementCount(): usize {
         return this.#placementCount;
     }
 
-    public get offset(): number {
+    public get offset(): usize {
         return this.#offset;
     }
 
-    public get size(): number {
+    public get size(): usize {
         return this.#size;
     }
 
-    public get id(): number {
+    public get id(): u16 {
         return this.#pointData >>> 16;
     }
 
-    public get rotation(): number {
+    public get rotation(): u16 {
         return Math.round(((this.#pointData & ((1 << 16) - 1)) * 360) / this.#angleSplit);
     }
 
-    public get x(): number {
+    public get x(): f32 {
         return this.#memSeg[this.#pointOffset];
     }
 
-    public get y(): number {
+    public get y(): f32 {
         return this.#memSeg[this.#pointOffset + 1];
     }
 
-    get placePercentage(): number {
+    get placePercentage(): f32 {
         return this.#view.getFloat32(0, true);
     }
 
-    get numPlacedParts(): number {
+    get numPlacedParts(): u16 {
         return this.#view.getUint16(4, true);
     }
 
-    get numParts(): number {
+    get numParts(): u16 {
         return this.#view.getUint16(6, true);
     }
 
-    get angleSplit(): number {
+    get angleSplit(): u8 {
         return this.#view.getUint8(8);
     }
 
@@ -106,19 +106,19 @@ export default class PlacementWrapper implements IPlacementWrapper {
         return this.#view.getUint8(9) === 1;
     }
 
-    get boundsX(): number {
+    get boundsX(): f32 {
         return this.#view.getFloat32(10, true);
     }
 
-    get boundsY(): number {
+    get boundsY(): f32 {
         return this.#view.getFloat32(14, true);
     }
 
-    get boundsWidth(): number {
+    get boundsWidth(): f32 {
         return this.#view.getFloat32(18, true);
     }
 
-    get boundsHeight(): number {
+    get boundsHeight(): f32 {
         return this.#view.getFloat32(22, true);
     }
 

@@ -68,7 +68,7 @@ export default class PolygonPacker extends BasePacker {
         );
     }
 
-    #onSpawn = (_: number, progress: number): void => {
+    #onSpawn = (_: usize, progress: f32): void => {
         this.#progress = progress;
     };
 
