@@ -14,23 +14,6 @@ export default class PolygonPacker extends BasePacker {
 
     #chunkSize: usize = 512;
 
-
-    protected async initWasm() {
-        await super.initWasm();
-        this.setupWorkers();
-    }
-
-    private async setupWorkers() {
-        this.#workersReady = false;
-        this.#paralele.start(
-            new Array(this.#paralele.threadCount).fill(0).map(() => this.cloneWasmBuffer()),
-            () => {
-                this.#workersReady = true;
-            },
-            this.onError
-        );
-    }
-
     // progressCallback is called when progress is made
     // displayCallback is called when a new placement has been made
     public start(
@@ -44,52 +27,9 @@ export default class PolygonPacker extends BasePacker {
 
         this.#isWorking = true;
 
-        this.launchWorkers(displayCallback);
+        this.#launchWorkers(displayCallback);
 
         this.#workerTimer = setInterval(() => progressCallback(this.#progress), 100) as unknown as u32;
-    }
-
-    private onSpawn = (_: number, progress: number): void => {
-        this.#progress = progress;
-    };
-
-    launchWorkers(displayCallback: DisplayCallback) {
-        const serializedPairs = this.wasmNesting.wasm_packer_get_pairs(this.#chunkSize);
-        const pairs = serializedPairs.map(pair => pair.buffer as ArrayBuffer);
-        //console.log(pairs.map(p => p.byteLength));
-        this.#paralele.start(
-            pairs,
-            (generatedNfp: ArrayBuffer[]) => this.onPair(generatedNfp, displayCallback),
-            this.onError,
-            this.onSpawn
-        );
-    }
-
-    private onError(error: ErrorEvent) {
-        console.log(error);
-    }
-
-    private onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        const placementData = this.wasmNesting.wasm_packer_get_placement_data(generatedNfp);
-
-        this.#paralele.start(
-            [placementData.buffer as ArrayBuffer],
-            (placements: ArrayBuffer[]) => this.onPlacement(placements, displayCallback),
-            this.onError
-        );
-    }
-
-    private onPlacement(placements: ArrayBuffer[], displayCallback: DisplayCallback): void {
-        if (placements.length === 0) {
-            return;
-        }
-
-        if (this.#isWorking) {
-            const placementWrapper = this.wasmNesting.wasm_packer_get_placement_result(placements);
-
-            displayCallback(placementWrapper);
-            this.launchWorkers(displayCallback);
-        }
     }
 
     public stop(isClean: boolean): void {
@@ -105,10 +45,69 @@ export default class PolygonPacker extends BasePacker {
         }
 
         this.#paralele.terminate();
-        this.setupWorkers();
+        this.#setupWorkers();
 
         if (isClean) {
             super.stop(isClean);
+        }
+    }
+
+    protected async initWasm() {
+        await super.initWasm();
+        this.#setupWorkers();
+    }
+
+    async #setupWorkers() {
+        this.#workersReady = false;
+        this.#paralele.start(
+            new Array(this.#paralele.threadCount).fill(0).map(() => this.cloneWasmBuffer()),
+            () => {
+                this.#workersReady = true;
+            },
+            this.#onError
+        );
+    }
+
+    #onSpawn = (_: number, progress: number): void => {
+        this.#progress = progress;
+    };
+
+    #launchWorkers(displayCallback: DisplayCallback) {
+        const serializedPairs = this.wasmNesting.getPairs(this.#chunkSize);
+        const pairs = serializedPairs.map(pair => pair.buffer as ArrayBuffer);
+        //console.log(pairs.map(p => p.byteLength));
+        this.#paralele.start(
+            pairs,
+            (generatedNfp: ArrayBuffer[]) => this.#onPair(generatedNfp, displayCallback),
+            this.#onError,
+            this.#onSpawn
+        );
+    }
+
+    #onError(error: ErrorEvent) {
+        console.log(error);
+    }
+
+    #onPair(generatedNfp: ArrayBuffer[], displayCallback: DisplayCallback): void {
+        const placementData = this.wasmNesting.getPlacementData(generatedNfp);
+
+        this.#paralele.start(
+            [placementData.buffer as ArrayBuffer],
+            (placements: ArrayBuffer[]) => this.#onPlacement(placements, displayCallback),
+            this.#onError
+        );
+    }
+
+    #onPlacement(placements: ArrayBuffer[], displayCallback: DisplayCallback): void {
+        if (placements.length === 0) {
+            return;
+        }
+
+        if (this.#isWorking) {
+            const placementWrapper = this.wasmNesting.getPlacementResult(placements);
+
+            displayCallback(placementWrapper);
+            this.#launchWorkers(displayCallback);
         }
     }
 }

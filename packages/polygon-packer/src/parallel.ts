@@ -43,7 +43,7 @@
         onSpawn: (scount: number, progress: number) => void = null
     ): boolean {
         if (input.length === 0) {
-            this.onError(new ErrorEvent('Empty data'));
+            this.#handleError(new ErrorEvent('Empty data'));
             return false;
         }
 
@@ -69,7 +69,7 @@
         }
 
         while (this.#startedThreads < this.#totalThreads && this.#threadsUsage.indexOf(false) !== -1) {
-            this.trigger();
+            this.#trigger();
         }
 
         return true;
@@ -94,7 +94,7 @@
         return this.#threadCount;
     }
 
-    private trigger(): boolean {
+    #trigger(): boolean {
         const index: number = this.#threadsUsage.indexOf(false);
 
         if (index === -1) {
@@ -116,15 +116,15 @@
 
         const input = this.#input[threadIndex];
 
-        thread.onmessage = this.onMessage;
-        thread.onerror = this.onError;
+        thread.onmessage = this.#onMessage;
+        thread.onerror = this.#handleError;
         thread.postMessage(input, [input]);
 
         return true;
     }
 
-    private onMessage = (message: MessageEvent<ArrayBuffer>) => {
-        const index = this.clean(message.currentTarget as Worker);
+    #onMessage = (message: MessageEvent<ArrayBuffer>) => {
+        const index = this.#clean(message.currentTarget as Worker);
         const threadIndex = this.#threadIndices[index];
 
         this.#output[threadIndex] = message.data;
@@ -135,16 +135,16 @@
         }
 
         if (this.#startedThreads < this.#totalThreads) {
-            this.trigger();
+            this.#trigger();
         }
     };
 
-    private onError = (error: ErrorEvent) => {
-        this.clean(error.currentTarget as Worker);
+    #handleError = (error: ErrorEvent) => {
+        this.#clean(error.currentTarget as Worker);
         this.#onError(error);
     };
 
-    private clean(target: Worker): number {
+    #clean(target: Worker): number {
         let i: number = 0;
 
         for (i = 0; i < this.#threadCount; ++i) {

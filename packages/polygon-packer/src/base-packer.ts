@@ -19,12 +19,12 @@ export default class BasePacker {
     ): void {
         const allPolygons = polygons.concat([binPolygon]);
 
-        this.wasmNesting.wasm_packer_init(configuration, allPolygons);
+        this.wasmNesting.init(configuration, allPolygons);
     }
 
     protected async initWasm() {
         this.#wasmBuffer = await (await fetch('dist/polygon-packer.wasm')).arrayBuffer();
-        this.#wasmNesting.init(this.cloneWasmBuffer());
+        this.#wasmNesting.initBuffer(this.cloneWasmBuffer());
     }
 
     protected cloneWasmBuffer(): ArrayBuffer {
@@ -40,7 +40,7 @@ export default class BasePacker {
 
     public stop(isClean: boolean): void {
         if (isClean) {
-            this.wasmNesting.wasm_packer_stop();
+            this.wasmNesting.stop();
         }
     }
 }

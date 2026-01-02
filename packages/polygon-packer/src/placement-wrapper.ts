@@ -1,3 +1,4 @@
+import { deserializeSourceItems, flattenTree, readUint32FromF32 } from './helpers';
 import { IPlacementWrapper, SourceItem, FlattenedData } from './types';
 
 export default class PlacementWrapper implements IPlacementWrapper {
@@ -39,13 +40,13 @@ export default class PlacementWrapper implements IPlacementWrapper {
     }
 
     public bindPlacement(index: number): void {
-        this.#placement = PlacementWrapper.readUint32FromF32(this.#memSeg, 2 + index);
+        this.#placement = readUint32FromF32(this.#memSeg, 2 + index);
         this.#offset = this.#placement >>> 16;
         this.#size = this.#placement & ((1 << 16) - 1);
     }
 
     public bindData(index: number): number {
-        this.#pointData = PlacementWrapper.readUint32FromF32(this.#memSeg, this.#offset + index);
+        this.#pointData = readUint32FromF32(this.#memSeg, this.#offset + index);
         this.#pointOffset = this.#offset + this.#size + (index << 1);
 
         return this.#sources[this.id].source;
@@ -54,7 +55,7 @@ export default class PlacementWrapper implements IPlacementWrapper {
     public get flattnedChildren(): FlattenedData | null {
         const source = this.#sources[this.id];
 
-        return source.children.length ? PlacementWrapper.flattenTree(source.children, true) : null;
+        return source.children.length ? flattenTree(source.children, true) : null;
     }
 
     public get placementCount(): number {
@@ -145,7 +146,7 @@ export default class PlacementWrapper implements IPlacementWrapper {
         // Sources segment starts at offset 34
         const sourcesData = new Uint8Array(this.#buffer, 34, sourcesSize);
 
-        return PlacementWrapper.deserializeSourceItems(sourcesData);
+        return deserializeSourceItems(sourcesData);
     }
 
     get placementsData(): Float32Array {
@@ -166,87 +167,5 @@ export default class PlacementWrapper implements IPlacementWrapper {
 
         // Create Float32Array view of the placements data
         return new Float32Array(this.#buffer, placementsOffset, placementsDataSize / Float32Array.BYTES_PER_ELEMENT);
-    }
-
-    private static deserializeSourceItemsInternal(
-        view: DataView,
-        offset: number,
-        count: number
-    ): { items: SourceItem[]; nextOffset: number } {
-        const items: SourceItem[] = [];
-        let currentOffset = offset;
-
-        for (let i = 0; i < count; ++i) {
-            // Read source (u16)
-            const source = view.getUint16(currentOffset, true);
-            currentOffset += Uint16Array.BYTES_PER_ELEMENT;
-
-            // Read children count (u16)
-            const childrenCount = view.getUint16(currentOffset, true);
-            currentOffset += Uint16Array.BYTES_PER_ELEMENT;
-
-            // Recursively deserialize children
-            const childrenResult = PlacementWrapper.deserializeSourceItemsInternal(view, currentOffset, childrenCount);
-
-            items.push({
-                source,
-                children: childrenResult.items
-            });
-
-            currentOffset = childrenResult.nextOffset;
-        }
-
-        return { items, nextOffset: currentOffset };
-    }
-
-    private static deserializeSourceItems(data: Uint8Array): SourceItem[] {
-        const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-
-        // Read items count
-        const count = view.getUint16(0, true);
-
-        // Deserialize items
-        const result = PlacementWrapper.deserializeSourceItemsInternal(view, Uint16Array.BYTES_PER_ELEMENT, count);
-
-        return result.items;
-    }
-
-    private static flattenTree(
-        nodes: SourceItem[],
-        hole: boolean,
-        result: FlattenedData = { sources: [], holes: [] }
-    ): FlattenedData {
-        const nodeCount = nodes.length;
-        let node: SourceItem;
-        let children: SourceItem[];
-
-        for (let i = 0; i < nodeCount; ++i) {
-            node = nodes[i];
-
-            if (hole) {
-                result.holes.push(node.source);
-            }
-
-            children = node.children;
-
-            result.sources.push(node.source);
-
-            if (children && children.length > 0) {
-                PlacementWrapper.flattenTree(children, !hole, result);
-            }
-        }
-
-        return result;
-    }
-
-    private static getByteOffset(array: Float32Array, index: number): number {
-        return (array.byteOffset >>> 0) + index * Float32Array.BYTES_PER_ELEMENT;
-    }
-
-    private static readUint32FromF32(array: Float32Array, index: number): number {
-        const byteOffset = PlacementWrapper.getByteOffset(array, index);
-        const view = new DataView(array.buffer);
-
-        return view.getUint32(byteOffset, true);
     }
 }

@@ -27,12 +27,15 @@ export default [
                 compress: {
                     passes: 2,
                     pure_getters: true,
-                    unsafe: true
+                    unsafe: true,
+                    unsafe_methods: true
                 },
                 mangle: {
                     properties: {
-                        regex: /^#/
-                    }
+                        regex: /^#/,
+                        reserved: ['__']  // Don't mangle dunder methods
+                    },
+                    toplevel: false
                 },
                 format: {
                     comments: false
@@ -62,12 +65,15 @@ export default [
                 compress: {
                     passes: 2,
                     pure_getters: true,
-                    unsafe: true
+                    unsafe: true,
+                    unsafe_methods: true
                 },
                 mangle: {
                     properties: {
-                        regex: /^#/
-                    }
+                        regex: /^#/,
+                        reserved: ['__']  // Don't mangle dunder methods
+                    },
+                    toplevel: false
                 },
                 format: {
                     comments: false
