@@ -7,15 +7,6 @@ import { BUTTON_CONFIG } from './constants';
 import { useResize } from '../hooks';
 import './styles.scss';
 
-/**
- * Button group component.
- *
- * Renders a collection of action buttons with icons and optional labels.
- * Adapts to mobile/desktop layouts and supports disabled/hidden states.
- *
- * @group Shared Components
- * @component
- */
 const ButtonGroup: FC<ButtonGroupProps> = ({
     buttonsConfig,
     onClick,
@@ -63,4 +54,26 @@ const ButtonGroup: FC<ButtonGroupProps> = ({
     );
 };
 
+/**
+ * Button group component.
+ *
+ * Renders a collection of action buttons with consistent styling and behavior.
+ * Adapts to different screen sizes and provides flexible configuration options:
+ * - Dynamic button layout based on available space
+ * - Support for disabled and hidden button states
+ * - Internationalization support for button labels
+ * - Touch-friendly design for mobile devices
+ * - Keyboard navigation and accessibility features
+ * - Consistent visual design with hover and active states
+ * - Configurable button actions and icons
+ *
+ * @group Shared
+ * @component
+ * @param {ButtonGroupProps} props - Component props
+ * @param {BUTTON_ACTION[]} props.buttonsConfig - Array of button action types to display
+ * @param {function} props.onClick - Callback function called when a button is clicked
+ * @param {string[]} props.disabledButtons - Array of button IDs that should be disabled
+ * @param {string[]} props.hiddenButtons - Array of button IDs that should be hidden
+ * @param {string} props.localePrefix - Translation key prefix for button labels
+ */
 export default memo(ButtonGroup);

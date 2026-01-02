@@ -8,10 +8,12 @@ import { FADE_STATUS } from './types';
 /**
  * Main application component.
  *
- * Manages the overall application state and transitions between
- * the splash screen and the main application flow.
+ * Serves as the root component for the SVGnest web application. Manages the overall
+ * application state including transitions between the splash screen and main application
+ * flow. Handles demo mode initialization and smooth fade transitions between screens.
+ * Provides the main entry point for the React application with internationalization support.
  *
- * @group Main Application
+ * @group AppFlow
  * @component
  */
 const App: FC = () => {

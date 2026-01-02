@@ -12,16 +12,6 @@ interface SharedDrawerProps {
     children: ReactNode[];
 }
 
-/**
- * Shared drawer component.
- *
- * Provides a slide-in drawer interface for displaying content like
- * settings, help, or additional information. Supports both vertical
- * and horizontal orientations based on screen layout.
- *
- * @group Shared Components
- * @component
- */
 const SharedDrawer: FC<SharedDrawerProps> = ({ isOpen, onClose, closeAction, children, title }) => {
     const { isLendscape } = useResize();
     const [{ visible, animating }, setState] = useState(INITIAL_STATE);
@@ -57,4 +47,27 @@ const SharedDrawer: FC<SharedDrawerProps> = ({ isOpen, onClose, closeAction, chi
     ) : null;
 };
 
+/**
+ * Shared drawer component.
+ *
+ * A versatile slide-in drawer component for displaying contextual content and
+ * secondary interfaces. Automatically adapts to screen orientation and provides:
+ * - Smooth slide-in/slide-out animations
+ * - Orientation-aware positioning (vertical on mobile, horizontal on desktop)
+ * - Backdrop overlay with click-to-close functionality
+ * - Keyboard navigation support (Escape key to close)
+ * - Responsive design that works on all screen sizes
+ * - Configurable close actions and titles
+ * - Support for complex child content including forms and lists
+ * - Consistent visual design with the application theme
+ *
+ * @group Shared
+ * @component
+ * @param props - Component props
+ * @param props.isOpen - Whether the drawer is currently open
+ * @param props.onClose - Callback function called when the drawer should close
+ * @param props.closeAction - Action identifier for the close operation
+ * @param props.title - Title text displayed in the drawer header
+ * @param props.children - Child components to render inside the drawer
+ */
 export default memo(SharedDrawer);

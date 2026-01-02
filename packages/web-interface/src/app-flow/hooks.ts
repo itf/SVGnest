@@ -7,6 +7,23 @@ import { PREDEFINED_ID, REDUCER_ACTION, SETTING_ID } from './types';
 import { getModifiedButtons } from './helpers';
 import { BUTTON_ACTION } from '../types';
 
+/**
+ * Custom hook for managing the main application flow state and logic.
+ *
+ * Provides comprehensive state management for the SVG nesting application including:
+ * - File upload and processing with drag-and-drop support
+ * - Real-time nesting progress tracking and statistics
+ * - Settings management with validation and constraints
+ * - UI state management (drawers, zoom, selection)
+ * - Error handling and user feedback
+ * - SVG parsing and bin selection
+ * - Download functionality for processed results
+ *
+ * @group AppFlow
+ * @param onClose - Callback function called when the application should close
+ * @param isDemoMode - Whether the application is running in demo mode
+ * @returns Object containing state values and handler functions for the app flow
+ */
 export default function useAppFlow(onClose: () => void, isDemoMode: boolean) {
     const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
     const fileLoader = useRef<HTMLInputElement>(null);

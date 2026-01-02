@@ -3,6 +3,19 @@ import { TFunction } from 'i18next';
 import { TIME_ITEMS } from './constants';
 import { TIME_KEY, TimeItem } from './types';
 
+/**
+ * Converts milliseconds to a human-readable time string with appropriate units.
+ *
+ * Formats time duration in milliseconds into localized strings using the most
+ * appropriate time unit (years, days, hours, minutes). Automatically selects
+ * the largest applicable unit and provides singular/plural forms through
+ * internationalization.
+ *
+ * @group AppFlow
+ * @param milliseconds - Time duration in milliseconds
+ * @param t - Translation function for internationalization
+ * @returns Localized time string (e.g., "2 hours", "30 minutes")
+ */
 export function millisecondsToStr(milliseconds: number, t: TFunction): string {
     const seconds = Math.floor(milliseconds / 1000);
     const itemCount = TIME_ITEMS.length;

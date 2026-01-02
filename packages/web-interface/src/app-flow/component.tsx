@@ -13,12 +13,21 @@ import './styles.scss';
 /**
  * Main application flow component.
  *
- * Provides the core SVG nesting interface with controls for uploading,
- * processing, and downloading SVG files. Includes settings, statistics,
- * and real-time progress tracking.
+ * Provides the core SVG nesting interface with comprehensive controls for uploading,
+ * processing, and downloading SVG files. Features include:
+ * - File upload with drag-and-drop support
+ * - Real-time nesting progress tracking with visual progress bars
+ * - Interactive settings panel for algorithm configuration
+ * - Live statistics display showing placement efficiency and performance metrics
+ * - Bin selection and visualization
+ * - Download functionality for processed SVG results
+ * - Responsive design adapting to mobile and desktop layouts
  *
- * @group App Flow
+ * @group AppFlow
  * @component
+ * @param {AppFlowProps} props - Component props
+ * @param {function} props.onClose - Callback function called when the application should close
+ * @param {boolean} props.isDemoMode - Whether the application is running in demo mode
  */
 const AppFlow: FC<AppFlowProps> = ({ onClose, isDemoMode }) => {
     const {

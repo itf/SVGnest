@@ -10,15 +10,6 @@ import { Logo } from '../assets';
 
 import './styles.scss';
 
-/**
- * Splash screen component.
- *
- * Displays the initial application interface with options to start
- * a demo, open files, or access help information.
- *
- * @group Splash Screen
- * @component
- */
 const SplashScreen: FC<SplashScreenProps> = ({ onOpenApp }) => {
     const { t } = useTranslation();
     const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -59,4 +50,22 @@ const SplashScreen: FC<SplashScreenProps> = ({ onOpenApp }) => {
     );
 };
 
+/**
+ * Splash screen component.
+ *
+ * Displays the initial application interface with multiple entry points and
+ * informational content. Provides users with options to:
+ * - Start a demo with sample data
+ * - Upload their own SVG files for processing
+ * - Access help documentation and tutorials
+ * - Learn about the application's features and capabilities
+ * - Navigate to external resources and documentation
+ * Features a clean, welcoming design with clear call-to-action buttons
+ * and collapsible help sections.
+ *
+ * @group SplashScreen
+ * @component
+ * @param props - Component props
+ * @param props.onOpenApp - Callback function called when the user wants to open the main application
+ */
 export default memo(SplashScreen);

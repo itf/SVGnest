@@ -1,14 +1,6 @@
 import { memo } from 'react';
 import { COLORS } from './types';
 
-/**
- * SVG Logo component.
- *
- * Displays the SVGnest application logo with animated circles and geometric patterns.
- *
- * @group Assets
- * @component
- */
 const Logo = () => (
     <svg className="logo" width="256" height="256" viewBox="0 0 256 256">
         <g transform="rotate(315 128 128)">
@@ -136,4 +128,19 @@ const Logo = () => (
     </svg>
 );
 
+/**
+ * SVG Logo component.
+ *
+ * Displays the SVGnest application logo featuring animated geometric patterns
+ * and the application branding. The logo includes:
+ * - Rotating circular design with nested geometric shapes
+ * - Smooth animations and visual effects
+ * - Scalable SVG format for crisp display at any size
+ * - Consistent color scheme matching the application theme
+ * - Optimized for both light and dark backgrounds
+ * - Accessibility-friendly with proper semantic markup
+ *
+ * @group Assets
+ * @component
+ */
 export default memo(Logo);

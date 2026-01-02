@@ -1,12 +1,6 @@
 import { memo } from 'react';
 import { COLORS } from './types';
 
-/**
- * Check icon component.
- *
- * @group Assets
- * @component
- */
 const CheckIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16">
         <rect width="16" height="16" rx="4" fill={COLORS.PRIMARY} />
@@ -17,4 +11,18 @@ const CheckIcon = () => (
     </svg>
 );
 
+/**
+ * Check icon component.
+ *
+ * Displays a checkmark icon used throughout the application for indicating
+ * completion, success states, and positive confirmations. Features:
+ * - Clean, minimalist checkmark design
+ * - Consistent sizing with other application icons
+ * - Scalable SVG format for crisp display
+ * - Semantic meaning for accessibility tools
+ * - Used in checkboxes, success messages, and completion indicators
+ *
+ * @group Assets
+ * @component
+ */
 export default memo(CheckIcon);

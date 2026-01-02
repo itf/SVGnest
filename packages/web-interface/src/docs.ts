@@ -5,29 +5,32 @@
  * @packageDocumentation
  */
 
-// Main application components
+/**
+ * AppFlow - Main application, core application flow logic, components, hooks and utilities.
+ * @group AppFlow
+ */
 export { default as App } from './app';
-
-/**
- * App Flow components - Main application interface for SVG nesting.
- * @group App Flow
- */
-export { AppFlow } from './app-flow';
+/** @group AppFlow */
 export { SettingInput } from './app-flow/setting-input';
+export { AppFlow } from './app-flow';
 export { Statistics } from './app-flow/statistics';
+export { default as useAppFlow } from './app-flow/hooks';
+export { getModifiedButtons, toPercents } from './app-flow/helpers';
+export { millisecondsToStr } from './app-flow/statistics/helpers';
 
 /**
- * Splash Screen components - Initial application interface.
- * @group Splash Screen
+ * SplashScreen - Initial application interface and help system.
+ * @group SplashScreen
  */
-export { SplashScreen } from './splash-screen';
+export { default as SplashScreen } from './splash-screen/component';
 
 /**
- * Shared components - Reusable UI components.
- * @group Shared Components
+ * Shared - Reusable UI components and utilities.
+ * @group Shared
  */
 export { ButtonGroup } from './shared';
 export { SharedDrawer } from './shared';
+export { useResize } from './shared/hooks';
 
 /**
  * Assets - Icons and visual components.
@@ -38,4 +41,10 @@ export { default as CheckIcon } from './assets/check';
 export { default as StartIcon } from './assets/start';
 
 // Types and enums
-export * from './types';
+export type { AppFlowProps } from './app-flow/types';
+export type { SettingInputProps, InputProps } from './app-flow/setting-input/types';
+export type { StatisticsProps } from './app-flow/statistics/types';
+export type { SplashScreenProps } from './splash-screen/types';
+export type { ButtonGroupProps } from './shared/button-group/types';
+export { BUTTON_ACTION, FADE_STATUS } from './types';
+export { INPUT_TYPE, SETTING_ID } from './app-flow/types';
