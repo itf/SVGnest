@@ -3,14 +3,13 @@
     "version": "1.0.0",
     "main": "src/index.ts",
     "scripts": {
-        "build": "webpack",
-        "watch": "webpack --watch --config webpack.config.mjs",
+        "build": "rollup -c",
+        "watch": "rollup -c --watch",
         "test": "jest",
         "lint": "eslint src/**/*.ts",
         "lint:fix": "eslint src/**/*.ts --fix"
-    },    "dependencies": {
-        "wasm-nesting": "workspace:*"
-    },    "description": "Polygon packing algorythm",
+    },
+    "description": "Polygon packing algorythm",
     "keywords": [
         "polygons",
         "genetic",

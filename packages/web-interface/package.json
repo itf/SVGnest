@@ -10,8 +10,8 @@
         "lint:fix": "eslint src/**/*.ts src/**/*.tsx --fix"
     },
     "dependencies": {
-        "polygon-packer": "workspace:*",
-        "svg-parser": "workspace:*"
+        "polygon-packer": "*",
+        "svg-parser": "*"
     },
     "description": "user interface package for SVGNest",
     "keywords": [

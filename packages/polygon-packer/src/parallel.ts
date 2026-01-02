@@ -62,7 +62,7 @@
 
         if (this.#isTerminated) {
             for (i = 0; i < this.#threadCount; ++i) {
-                this.#threads[i] = new Worker(new URL('./nest.worker', import.meta.url), { type: 'module' });
+                this.#threads[i] = new Worker('dist/polygon-packer.calc.js', { type: 'module' });
             }
 
             this.#isTerminated = false;
