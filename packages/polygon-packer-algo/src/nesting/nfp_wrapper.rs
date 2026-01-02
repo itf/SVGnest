@@ -68,10 +68,10 @@ impl<'a> NFPWrapper<'a> {
     ///
     /// # Arguments
     /// * `key` - Cache key identifier
-    /// * `nfp_arrays` - Vector of NFP polygon data (each as a Vec<f32>)
+    /// * `nfp_arrays` - Vector of NFP polygon data (each as a `Vec<f32>`)
     ///
     /// # Returns
-    /// A Vec<f32> containing the serialized data
+    /// A `Vec<f32>` containing the serialized data
     pub fn serialize(key: u32, nfp_arrays: &[Vec<f32>]) -> Vec<f32> {
         let nfp_count = nfp_arrays.len();
         let mut info = vec![0u32; nfp_count];

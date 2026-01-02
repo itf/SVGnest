@@ -2,8 +2,8 @@
 /// Equivalent to TypeScript Scanbeam class from packages/geometry-utils/src/clipper/scanbeam.ts
 #[derive(Debug, Clone)]
 pub struct Scanbeam {
-    /// Array of i32 values representing Y-coordinates
-    /// Type: Vec<i32> (equivalent to TypeScript i32[])
+    /// Array of `i32` values representing Y-coordinates
+    /// Type: `Vec<i32>` (equivalent to TypeScript i32[])
     values: Vec<i32>,
 }
 

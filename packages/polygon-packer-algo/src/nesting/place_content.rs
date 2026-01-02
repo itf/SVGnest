@@ -72,6 +72,7 @@ impl PlaceContent {
     }
 
     /// Clean up resources
+    /// Cleans the PlaceContent, clearing all cached data and resetting to empty state
     pub fn clean(&mut self) {
         self.nest_content.clean();
         self.nfp_cache.clear();

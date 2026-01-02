@@ -14,6 +14,11 @@ fn wrap(index: usize, offset: usize, len: usize) -> usize {
     return (index + offset) % len;
 }
 
+/// Core numeric trait for geometric computations.
+///
+/// This trait combines various numeric operations and utilities needed for
+/// polygon processing, geometric calculations, and coordinate transformations.
+/// It extends the standard numeric traits with polygon-specific operations.
 pub trait Number:
     Num
     + Copy
@@ -32,13 +37,19 @@ pub trait Number:
     + Div<Output = Self>
     + Neg<Output = Self>
 {
+    /// Returns the minimum of two values.
     fn min_num(self, other: Self) -> Self;
+    /// Returns the maximum of two values.
     fn max_num(self, other: Self) -> Self;
+    /// Returns the tolerance value for this numeric type.
     fn tol() -> Self;
+    /// Calculates the signed area of a polygon defined by points.
     fn polygon_area(points: &[Self]) -> f64;
+    /// Calculates the absolute area of a polygon defined by points.
     fn abs_polygon_area(points: &[Self]) -> f64 {
         Self::polygon_area(points).abs()
     }
+    /// Rotates a polygon by the given angle in degrees.
     fn rotate_polygon(polygon: &mut [Self], angle: Self) {
         let len = polygon.len();
         if len < 2 || len & 1 != 0 {

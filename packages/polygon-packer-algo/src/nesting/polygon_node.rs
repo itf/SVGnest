@@ -1,21 +1,40 @@
+/// A node representing a polygon in the nesting hierarchy.
+///
+/// This struct contains information about a polygon including its source index,
+/// rotation angle, memory segment data, and child nodes for hierarchical nesting.
 #[derive(Debug, Clone)]
 pub struct PolygonNode {
+    /// Source index identifying the original polygon
     pub source: i32,
+    /// Rotation angle in radians
     pub rotation: f32,
+    /// Size of the memory segment
     pub seg_size: usize,
+    /// Memory segment containing polygon vertex data
     pub mem_seg: Box<[f32]>,
+    /// Child nodes for hierarchical nesting
     pub children: Vec<PolygonNode>,
 }
 
 /// SourceItem represents a node and its children in a serializable form.
 #[derive(Debug, Clone)]
 pub struct SourceItem {
+    /// Source index
     pub source: u16,
+    /// Child source items
     pub children: Vec<SourceItem>,
 }
 
 impl PolygonNode {
     /// Create a new PolygonNode from source, rotation, and memory segment
+    ///
+    /// # Arguments
+    /// * `source` - Source index of the polygon
+    /// * `rotation` - Rotation angle in radians
+    /// * `mem_seg` - Memory segment containing vertex data
+    ///
+    /// # Returns
+    /// A new PolygonNode instance
     pub fn new(source: i32, rotation: f32, mem_seg: Vec<f32>) -> Self {
         let seg_size = mem_seg.len();
         PolygonNode {
@@ -28,7 +47,7 @@ impl PolygonNode {
     }
     /// Deserialize PolygonNodes from f32 buffer
     ///
-    /// Reads node count from buffer[offset] and deserializes that many nodes
+    /// Reads node count from the buffer at the given offset position and deserializes that many nodes
     /// starting from buffer[offset + 1]
     ///
     /// Arguments:
@@ -92,7 +111,7 @@ impl PolygonNode {
         (nodes, idx)
     }
 
-    /// Serialize nodes to Vec<f32> format (for Float32Array)
+    /// Serialize nodes to `Vec<f32>` format (for Float32Array)
     /// Only the root node count, all other values are native format
     pub fn serialize(nodes: &[PolygonNode], offset: usize) -> Vec<f32> {
         // Calculate total f32 count needed

@@ -16,7 +16,7 @@ use crate::utils::number::Number;
 /// * `curve_tolerance` - Tolerance for cleaning coincident points and edges
 ///
 /// # Returns
-/// Cleaned polygon as a flat Vec<f32>, or empty vector if cleaning fails
+/// Cleaned polygon as a flat `Vec<f32>`, or empty vector if cleaning fails
 pub fn clean_node_inner(mem_seg: &[f32], curve_tolerance: f64) -> Vec<f32> {
     // Return empty if input is invalid
     if mem_seg.len() < 6 || mem_seg.len() % 2 != 0 {
@@ -81,7 +81,7 @@ pub fn clean_node_inner(mem_seg: &[f32], curve_tolerance: f64) -> Vec<f32> {
 /// * `curve_tolerance` - Tolerance for cleaning coincident points and edges
 ///
 /// # Returns
-/// Normalized and offset polygon as a flat Vec<f32>, or the normalized input if spacing is 0
+/// Normalized and offset polygon as a flat `Vec<f32>`, or the normalized input if spacing is 0
 pub fn offset_node_inner(
     mem_seg: &[f32],
     sign: i32,

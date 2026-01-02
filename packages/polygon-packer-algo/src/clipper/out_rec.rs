@@ -4,18 +4,30 @@ use crate::geometry::point::Point;
 use crate::utils::bit_ops::{get_u16, join_u16};
 
 // Represents a record for output polygons
+/// Manages output polygon data during clipping operations, including
+/// point storage, neighbor relationships, and polygon metadata.
 pub struct OutRec {
-    // Vector<(u16, u16, u16, u16)> - stores (point_index, current_index, first_left_index, hole_flag)
+    /// Record data storing point indices and flags: (point_index, current_index, first_left_index, hole_flag)
     rec_data: Vec<(u16, u16, u16, u16)>,
-    // Vector<(u16, u16)> - stores (prev_index, next_index) for point neighbors
+    /// Point neighbor relationships: (prev_index, next_index)
     point_neighbors: Vec<(u16, u16)>,
-    // Vector<Point<i32>> - stores the actual points
+    /// Actual polygon points
     points: Vec<Point<i32>>,
+    /// Whether to reverse the solution polygons
     is_reverse_solution: bool,
+    /// Whether to ensure strictly simple polygons
     is_strictly_simple: bool,
 }
 
 impl OutRec {
+    /// Creates a new OutRec instance.
+    ///
+    /// # Arguments
+    /// * `is_reverse_solution` - Whether to reverse output polygons
+    /// * `is_strictly_simple` - Whether to ensure strictly simple polygons
+    ///
+    /// # Returns
+    /// A new OutRec instance
     pub fn new(is_reverse_solution: bool, is_strictly_simple: bool) -> Self {
         Self {
             rec_data: Vec::new(),

@@ -1,5 +1,11 @@
-// Clipper module - geometric clipping operations
-// Contains implementations for polygon clipping, offset, and related utilities
+//! # Clipper Module
+//!
+//! Polygon clipping and offsetting operations based on the Clipper library.
+//! This module provides robust geometric operations for polygon manipulation,
+//! including clipping, offsetting, and boolean operations on polygons.
+//!
+//! The implementation is based on Angus Johnson's Clipper library and provides
+//! high-performance polygon operations essential for NFP calculations.
 
 pub mod clipper;
 pub mod clipper_offset;

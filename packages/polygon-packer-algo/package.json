@@ -6,6 +6,7 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "build": "npx ts-node scripts/wasm-build.ts"
+    "build": "npx ts-node scripts/wasm-build.ts",
+    "doc": "cargo doc --no-deps --open"
   }
 }

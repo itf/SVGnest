@@ -6,21 +6,43 @@ use crate::utils::math::{cycle_index, slopes_equal};
 use crate::utils::round::ClipperRound;
 use std::f64;
 
+/// TEdge structure manages topological edges for polygon clipping operations
+/// This is the core data structure for the Clipper algorithm implementation
+///
+/// The TEdge maintains arrays of edge data, winding information, and geometric points
+/// to efficiently process polygon intersections and clipping operations.
+#[derive(Debug, Clone)]
 pub struct TEdge {
+    /// Flag indicating whether to use full 64-bit integer range for coordinates
     is_use_full_range: bool,
+    /// Edge data array containing indices and connectivity information
+    /// Each element is an array of 8 u16 values representing edge relationships
     edge_data: Vec<[u16; 8]>,
+    /// Winding information for each edge [wind_cnt, wind_cnt2, wind_dx]
     wind: Vec<[i32; 3]>,
+    /// Delta X values for edge slopes
     dx: Vec<f64>,
+    /// Polygon type (subject or clip) for each edge
     poly_type: Vec<PolyType>,
+    /// Edge side direction (left or right)
     side: Vec<Direction>,
+    /// Geometric points for each edge [current, next, prev, opposite]
     points: Vec<[Point<i32>; 4]>,
+    /// Current clipping operation type
     clip_type: ClipType,
+    /// Polygon fill rule type
     fill_type: PolyFillType,
+    /// Index of currently active edge
     pub active: usize,
+    /// Index of sorted edge list
     pub sorted: usize,
 }
 
 impl TEdge {
+    /// Creates a new empty TEdge instance with default values
+    ///
+    /// # Returns
+    /// * `TEdge` - A new TEdge instance initialized with empty vectors and default settings
     pub fn new() -> Self {
         Self {
             is_use_full_range: true,
@@ -37,11 +59,27 @@ impl TEdge {
         }
     }
 
+    /// Initializes the TEdge with clipping operation parameters
+    ///
+    /// # Arguments
+    /// * `clip_type` - The type of clipping operation to perform
+    /// * `fill_type` - The polygon fill rule to use
     pub fn init(&mut self, clip_type: ClipType, fill_type: PolyFillType) {
         self.clip_type = clip_type;
         self.fill_type = fill_type;
     }
 
+    /// Creates a new path from a polygon, removing duplicate and collinear points
+    ///
+    /// This method processes the input polygon to create edges, eliminating any
+    /// redundant vertices that would not contribute to the final clipping result.
+    ///
+    /// # Arguments
+    /// * `polygon` - Vector of points defining the polygon
+    /// * `poly_type` - Type of polygon (subject or clip)
+    ///
+    /// # Returns
+    /// * `usize` - Index of the first edge created, or UNASSIGNED if polygon is invalid
     pub fn create_path(&mut self, polygon: &Vec<Point<i32>>, poly_type: PolyType) -> usize {
         let mut last_index = polygon.len() - 1;
 
@@ -167,14 +205,42 @@ impl TEdge {
         }
     }
 
+    /// Gets the X coordinate of a point at the specified edge and side
+    ///
+    /// # Arguments
+    /// * `index` - Edge index (1-based)
+    /// * `side` - Which point on the edge to access
+    ///
+    /// # Returns
+    /// * `i32` - X coordinate value
     pub fn get_x(&self, index: usize, side: EdgeSide) -> i32 {
         self.points[index - 1][side as usize].x
     }
 
+    /// Gets the Y coordinate of a point at the specified edge and side
+    ///
+    /// # Arguments
+    /// * `index` - Edge index (1-based)
+    /// * `side` - Which point on the edge to access
+    ///
+    /// # Returns
+    /// * `i32` - Y coordinate value
     pub fn get_y(&self, index: usize, side: EdgeSide) -> i32 {
         self.points[index - 1][side as usize].y
     }
 
+    /// Checks a boolean condition between two edge points
+    ///
+    /// # Arguments
+    /// * `index1` - First edge index (1-based)
+    /// * `index2` - Second edge index (1-based)
+    /// * `side1` - Side of first edge
+    /// * `side2` - Side of second edge
+    /// * `condition` - Boolean condition to check
+    /// * `is_x` - True to compare X coordinates, false for Y
+    ///
+    /// # Returns
+    /// * `bool` - Result of the condition check
     pub fn check_condition(
         &self,
         index1: usize,
@@ -205,6 +271,13 @@ impl TEdge {
         }
     }
 
+    /// Updates a point on an edge with values from another point
+    ///
+    /// # Arguments
+    /// * `input_index` - Index of edge to update (1-based)
+    /// * `update_index` - Index of edge to copy from (1-based)
+    /// * `input_side` - Side of edge to update
+    /// * `update_side` - Side of edge to copy from
     pub fn update(
         &mut self,
         input_index: usize,
@@ -218,6 +291,16 @@ impl TEdge {
         }
     }
 
+    /// Checks if two edge points are almost equal within tolerance
+    ///
+    /// # Arguments
+    /// * `index1` - First edge index (1-based)
+    /// * `index2` - Second edge index (1-based)
+    /// * `side1` - Side of first edge
+    /// * `side2` - Side of second edge
+    ///
+    /// # Returns
+    /// * `bool` - True if points are almost equal
     pub fn almost_equal(
         &self,
         index1: usize,
@@ -230,10 +313,19 @@ impl TEdge {
         unsafe { point1.almost_equal(point2, None) }
     }
 
+    /// Gets a point at the specified edge and side
+    ///
+    /// # Arguments
+    /// * `index` - Edge index (1-based)
+    /// * `side` - Which point on the edge to access
+    ///
+    /// # Returns
+    /// * `Point<i32>` - The point at the specified location
     pub fn point(&self, index: usize, side: EdgeSide) -> Point<i32> {
         self.points[index - 1][side as usize]
     }
 
+    /// Disposes of all edge data, clearing all internal vectors
     pub fn dispose(&mut self) {
         self.edge_data.clear();
         self.wind.clear();
@@ -243,10 +335,27 @@ impl TEdge {
         self.points.clear();
     }
 
+    /// Gets the direction/side of an edge
+    ///
+    /// # Arguments
+    /// * `index` - Edge index (1-based)
+    ///
+    /// # Returns
+    /// * `Direction` - The direction of the edge (Left or Right)
     pub fn side(&self, index: usize) -> Direction {
         self.side[index - 1]
     }
 
+    /// Creates local minima information for an edge in the sweep line algorithm
+    ///
+    /// This method determines the left and right bounds of a local minimum point
+    /// and sets up the winding direction for polygon filling rules.
+    ///
+    /// # Arguments
+    /// * `edge_index` - Index of the edge at the local minimum (1-based)
+    ///
+    /// # Returns
+    /// * `(i32, usize, usize)` - Tuple containing (y_coordinate, left_bound_index, right_bound_index)
     pub fn create_local_minima(&mut self, edge_index: usize) -> (i32, usize, usize) {
         let prev_index = self.prev(edge_index);
         let is_clockwise = self.get_clockwise(edge_index);

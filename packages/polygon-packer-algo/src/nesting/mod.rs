@@ -1,3 +1,9 @@
+//! # Nesting Module
+//!
+//! Core algorithms for polygon nesting and placement optimization.
+//! This module contains the main logic for computing No-Fit Polygons (NFPs),
+//! genetic algorithm optimization, and placement strategies.
+
 pub mod calculate;
 pub mod constants;
 pub mod nest_content;

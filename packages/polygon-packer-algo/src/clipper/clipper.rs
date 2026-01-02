@@ -10,17 +10,37 @@ use crate::clipper::utils::show_error;
 use crate::geometry::point::Point;
 use crate::utils::bit_ops::{get_u16, join_u16};
 
+/// Main Clipper struct for polygon clipping operations.
+///
+/// This struct implements the core Clipper algorithm for performing boolean
+/// operations on polygons including intersection, union, difference, and XOR.
+/// It manages the complex state required for polygon clipping operations.
 pub struct Clipper {
+    /// Local minima data structure
     local_minima: LocalMinima,
+    /// Intersection nodes for edge crossings
     intersections: IntersectNode,
+    /// Scanbeam for horizontal scanning
     scanbeam: Scanbeam,
+    /// Edge data structure
     t_edge: TEdge,
+    /// Join operations
     join: Join,
+    /// Output records
     out_rec: OutRec,
+    /// Lock to prevent re-entrant execution
     is_execute_locked: bool,
 }
 
 impl Clipper {
+    /// Creates a new Clipper instance.
+    ///
+    /// # Arguments
+    /// * `reverse_solution` - Whether to reverse the output polygons
+    /// * `strictly_simple` - Whether to ensure strictly simple polygons
+    ///
+    /// # Returns
+    /// A new Clipper instance
     pub fn new(reverse_solution: bool, strictly_simple: bool) -> Self {
         Self {
             intersections: IntersectNode::new(),
@@ -33,6 +53,14 @@ impl Clipper {
         }
     }
 
+    /// Adds a polygon path to the clipper.
+    ///
+    /// # Arguments
+    /// * `polygon` - The polygon to add as a vector of points
+    /// * `poly_type` - The type of polygon (subject or clip)
+    ///
+    /// # Returns
+    /// true if the path was added successfully
     pub fn add_path(&mut self, polygon: &Vec<Point<i32>>, poly_type: PolyType) -> bool {
         let mut edge_index = self.t_edge.create_path(polygon, poly_type);
 

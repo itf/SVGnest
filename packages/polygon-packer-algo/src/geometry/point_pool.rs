@@ -1,14 +1,24 @@
 use crate::constants::POOL_SIZE;
 use crate::geometry::point::Point;
-use crate::utils::number::Number;
 use crate::utils::bit_ops::highest_bit_index;
+use crate::utils::number::Number;
 
+/// A memory pool for managing Point objects efficiently.
+///
+/// This struct provides a pre-allocated pool of Point objects to avoid
+/// frequent allocations and deallocations during polygon processing.
 pub struct PointPool<T: Number> {
+    /// Array of point objects in the pool
     items: Box<[Point<T>]>,
+    /// Bitmask indicating which items are currently in use
     used: u32,
 }
 
 impl<T: Number> PointPool<T> {
+    /// Creates a new PointPool with pre-allocated points.
+    ///
+    /// # Returns
+    /// A new PointPool instance
     pub fn new() -> Self {
         let mut items_vec = Vec::with_capacity(POOL_SIZE);
 
@@ -20,6 +30,13 @@ impl<T: Number> PointPool<T> {
         Self { items, used: 0 }
     }
 
+    /// Allocates a point from the pool.
+    ///
+    /// # Arguments
+    /// * `count` - Number of points to allocate (must be power of 2)
+    ///
+    /// # Returns
+    /// A bitmask representing the allocated points
     pub fn alloc(&mut self, count: usize) -> u32 {
         let mut result = 0u32;
         let mut current_count = 0;

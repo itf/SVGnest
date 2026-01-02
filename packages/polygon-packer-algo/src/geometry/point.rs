@@ -6,13 +6,27 @@ const LOW_RANGE: f64 = 47453132.0;
 
 const HIGH_RANGE: f64 = 4503599627370495.0;
 
+/// A 2D point with generic numeric coordinates.
+///
+/// This struct represents a point in 2D space with x and y coordinates.
+/// It provides various geometric operations and utilities for polygon manipulation.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Point<T: Number> {
+    /// The x-coordinate of the point
     pub x: T,
+    /// The y-coordinate of the point
     pub y: T,
 }
 
 impl<T: Number> Point<T> {
+    /// Creates a new point with optional coordinates.
+    ///
+    /// # Arguments
+    /// * `x` - The x-coordinate, defaults to zero if None
+    /// * `y` - The y-coordinate, defaults to zero if None
+    ///
+    /// # Returns
+    /// A new Point instance
     #[inline(always)]
     pub fn new(x: Option<T>, y: Option<T>) -> Self {
         Self {
@@ -47,6 +61,16 @@ impl<T: Number> Point<T> {
         mem_seg[mem_index + 1] = self.y;
     }
 
+    /// Sets the coordinates of the point.
+    ///
+    /// # Arguments
+    /// * `x` - The new x-coordinate
+    /// * `y` - The new y-coordinate
+    ///
+    /// # Returns
+    /// A mutable pointer to self
+    /// # Safety
+    /// This method is unsafe because it returns a raw pointer
     #[inline(always)]
     pub unsafe fn set(&mut self, x: T, y: T) -> *mut Self {
         self.x = x;
@@ -60,6 +84,15 @@ impl<T: Number> Point<T> {
         self.set((*other).x, (*other).y)
     }
 
+    /// Adds another point to this point in-place.
+    ///
+    /// # Arguments
+    /// * `other` - Pointer to the point to add
+    ///
+    /// # Returns
+    /// A mutable pointer to self
+    /// # Safety
+    /// This method is unsafe because it takes a raw pointer
     #[inline(always)]
     pub unsafe fn add(&mut self, other: *const Self) -> *mut Self {
         self.set(self.x + (*other).x, self.y + (*other).y)

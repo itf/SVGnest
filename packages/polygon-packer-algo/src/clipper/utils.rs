@@ -29,7 +29,7 @@ fn pack_polygon_to_i32(polygon: &[Point<i32>]) -> Vec<i32> {
 /// * `is_round` - Whether to round the scaled values
 ///
 /// # Returns
-/// Vector of Point<i32> scaled by CLIPPER_SCALE and optionally cleaned
+/// Vector of `Point<i32>` scaled by CLIPPER_SCALE and optionally cleaned
 pub fn from_mem_seg(
     mem_seg: &[f32],
     offset: Option<&Point<f32>>,
@@ -73,13 +73,23 @@ pub fn from_mem_seg(
     }
 }
 
-/// Converts a vector of i32 Points to a memory segment (Vec<f32> equivalent to Float32Array)
+/// Converts a vector of i32 Points to a memory segment (`Vec<f32>` equivalent to Float32Array)
 ///
 /// # Arguments
-/// * `polygon` - Vector of Point<i32> to convert
+/// * `polygon` - Vector of `Point<i32>` to convert
 ///
 /// # Returns
 /// Vector of f32 values representing flattened points (x0, y0, x1, y1, ...) scaled down by CLIPPER_SCALE
+/// Converts a polygon of `Point<i32>` to a memory segment (Float32Array equivalent)
+///
+/// This function scales down the integer coordinates back to floating point
+/// values by dividing by CLIPPER_SCALE.
+///
+/// # Arguments
+/// * `polygon` - Slice of `Point<i32>` representing the polygon
+///
+/// # Returns
+/// * `Vec<f32>` - Flat array of f32 values (x0, y0, x1, y1, ...)
 pub fn to_mem_seg(polygon: &[Point<i32>]) -> Vec<f32> {
     let point_count = polygon.len();
     let mut result = Vec::with_capacity(point_count << 1);
@@ -95,6 +105,17 @@ pub fn to_mem_seg(polygon: &[Point<i32>]) -> Vec<f32> {
     result
 }
 
+/// Cleans a polygon by removing points that are too close together
+///
+/// This function removes vertices that are within the specified distance
+/// of each other to simplify the polygon while maintaining its shape.
+///
+/// # Arguments
+/// * `path` - The input polygon as a vector of points
+/// * `distance` - Minimum distance between points (in scaled coordinates)
+///
+/// # Returns
+/// * `Vec<Point<i32>>` - The cleaned polygon with close points removed
 pub fn clean_polygon(path: &Vec<Point<i32>>, distance: f64) -> Vec<Point<i32>> {
     let mut point_count = path.len();
     if point_count < 3 {
@@ -186,6 +207,16 @@ pub fn clean_polygon(path: &Vec<Point<i32>>, distance: f64) -> Vec<Point<i32>> {
 ///
 /// # Returns
 /// Vector of cleaned polygons (empty polygons are removed)
+/// Cleans multiple polygons by removing points that are too close together
+///
+/// Applies the clean_polygon function to each polygon in the input vector.
+///
+/// # Arguments
+/// * `paths` - Vector of polygons to clean
+/// * `distance` - Minimum distance between points (in scaled coordinates)
+///
+/// # Returns
+/// * `Vec<Vec<Point<i32>>>` - Vector of cleaned polygons (empty polygons are filtered out)
 pub fn clean_polygons(paths: &Vec<Vec<Point<i32>>>, distance: f64) -> Vec<Vec<Point<i32>>> {
     let mut result = Vec::with_capacity(paths.len());
 
@@ -280,11 +311,11 @@ pub fn get_combined_nfps(total_nfps: &Vec<Vec<Point<i32>>>) -> Vec<Vec<Point<i32
 /// 4. Filters out polygons with area smaller than AREA_TRASHOLD
 ///
 /// # Arguments
-/// * `nfp_buffer` - Buffer containing serialized NFP data (Vec<f32>)
+/// * `nfp_buffer` - Buffer containing serialized NFP data (`Vec<f32>`)
 /// * `offset` - Offset point to apply to all NFP polygons (in f32 coordinates)
 ///
 /// # Returns
-/// Vector of polygons (each polygon is a Vec<Point<i32>>) that meet the area threshold
+/// Vector of polygons (each polygon is a `Vec<Point<i32>>`) that meet the area threshold
 pub fn apply_nfps(nfp_buffer: Vec<f32>, offset: &Point<f32>) -> Vec<Vec<Point<i32>>> {
     let nfp_wrapper = NFPWrapper::new(&nfp_buffer);
     let nfp_count = nfp_wrapper.count();

@@ -1,4 +1,19 @@
+/// Trait for linear interpolation between two ranges.
+///
+/// This trait provides methods to map a value from one range to another
+/// using linear interpolation.
 pub trait Interpolate<Rhs = Self> {
+    /// Interpolates a value from range [a1, a2] to range [b1, b2].
+    ///
+    /// # Arguments
+    /// * `value` - The value to interpolate
+    /// * `a1` - Start of source range
+    /// * `a2` - End of source range
+    /// * `b1` - Start of target range
+    /// * `b2` - End of target range
+    ///
+    /// # Returns
+    /// The interpolated value in the target range
     fn interpolate(value: Rhs, a1: Rhs, a2: Rhs, b1: Rhs, b2: Rhs) -> Rhs;
 }
 

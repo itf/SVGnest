@@ -1,8 +1,21 @@
+/// Trait for standard rounding operations.
 pub trait Round {
+    /// Rounds the value to the nearest integer.
+    ///
+    /// # Returns
+    /// The rounded value
     fn rounded(self) -> Self;
 }
 
+/// Trait for Clipper-specific rounding operations.
+///
+/// This trait provides rounding methods optimized for the Clipper library's
+/// coordinate system and precision requirements.
 pub trait ClipperRound {
+    /// Rounds the value using Clipper-specific rounding rules.
+    ///
+    /// # Returns
+    /// The clipper-rounded value
     fn clipper_rounded(self) -> Self;
 }
 

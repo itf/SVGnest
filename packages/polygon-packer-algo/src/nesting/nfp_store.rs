@@ -6,13 +6,25 @@ use std::collections::HashMap;
 const THREAD_TYPE_PLACEMENT: u32 = 1;
 const THREAD_TYPE_PAIR: u32 = 0;
 
+/// Storage and management for No-Fit Polygons (NFPs).
+///
+/// This struct caches and manages NFPs which are used to determine valid
+/// placement positions for polygons. NFPs represent the region where one
+/// polygon cannot be placed relative to another.
 pub struct NFPStore {
+    /// Cache of computed NFPs keyed by pair identifiers
     nfp_cache: HashMap<u32, Vec<f32>>,
+    /// List of NFP pairs for current computation
     nfp_pairs: Vec<Vec<f32>>,
+    /// Source indices of polygons
     sources: Vec<i32>,
+    /// Rotation values for each polygon
     rotations: Vec<u16>,
+    /// Current phenotype source index
     phenotype_source: u16,
+    /// Number of angle divisions for rotation
     angle_split: u8,
+    /// Compressed configuration value
     config_compressed: u32,
 }
 
@@ -42,6 +54,14 @@ impl NFPStore {
         INSTANCE.with(|instance| f(&mut instance.borrow_mut()))
     }
 
+    /// Initializes the NFP store with polygon nodes and configuration.
+    ///
+    /// # Arguments
+    /// * `nodes` - Array of polygon nodes to process
+    /// * `bin_node` - The bin/container polygon node
+    /// * `config` - Nesting configuration parameters
+    /// * `phenotype_source` - Source index for the current phenotype
+    /// * `rotations` - Array of rotation values to consider
     pub fn init(
         &mut self,
         nodes: &[PolygonNode],

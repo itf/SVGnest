@@ -155,7 +155,7 @@ impl Join {
     /// * `out_hash2` - The second output hash (usize)
     /// * `point` - The point containing x and y coordinates
     ///
-    /// Equivalent to TypeScript add(outHash1: usize, outHash2: usize, point: Point<Int32Array>): void
+    /// Equivalent to TypeScript add(outHash1: usize, outHash2: usize, point: `Point<Int32Array>`): void
     pub fn add(&mut self, out_hash1: usize, out_hash2: usize, point: &Point<i32>) {
         self.joins.push((point.x, point.y, out_hash1, out_hash2));
     }

@@ -1,4 +1,16 @@
+/// Trait for calculating mid values in geometric contexts.
+///
+/// This trait provides methods to compute values that help determine
+/// the position of a point relative to a line segment defined by left and right points.
 pub trait MidValue<Rhs = Self> {
+    /// Calculates a mid value used in geometric computations.
+    ///
+    /// # Arguments
+    /// * `left` - Left boundary value
+    /// * `right` - Right boundary value
+    ///
+    /// # Returns
+    /// The computed mid value
     fn mid_value(self, left: Rhs, right: Rhs) -> Self;
 }
 

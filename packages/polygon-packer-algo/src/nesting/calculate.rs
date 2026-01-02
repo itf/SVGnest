@@ -4,7 +4,9 @@ use crate::nesting::place_flow::place_paths;
 /// Thread type enum matching TypeScript THREAD_TYPE
 #[derive(Debug, PartialEq)]
 pub enum ThreadType {
+    /// Pair calculation thread type
     Pair = 0,
+    /// Placement calculation thread type
     Placement = 1,
 }
 

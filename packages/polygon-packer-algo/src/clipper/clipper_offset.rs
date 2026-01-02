@@ -4,15 +4,20 @@ use crate::geometry::point::Point;
 use crate::utils::math::cycle_index;
 use crate::utils::number::Number;
 
-/// ClipperOffset - Performs polygon offsetting (expansion/contraction)
-/// Ported from TypeScript version in clipper-offset.ts
+/// Performs polygon offsetting operations (expansion and contraction).
+///
+/// This struct implements the ClipperOffset algorithm for creating offset
+/// versions of polygons by expanding or contracting them by a specified distance.
 pub struct ClipperOffset {
-    // Vec<Point<i32>>
+    /// Source polygon being offset
     pub(crate) src_polygon: Vec<Point<i32>>,
 }
 
 impl ClipperOffset {
-    /// Creates a new ClipperOffset instance
+    /// Creates a new ClipperOffset instance.
+    ///
+    /// # Returns
+    /// A new ClipperOffset with empty source polygon
     pub fn new() -> Self {
         Self {
             src_polygon: Vec::new(),
@@ -22,11 +27,11 @@ impl ClipperOffset {
     /// Execute the offset operation on a polygon
     ///
     /// # Arguments
-    /// * `polygon` - Vec<Point<i32>> - Input polygon
-    /// * `delta` - i32 - Offset distance (positive = expansion, negative = contraction)
+    /// * `polygon` - `Vec<Point<i32>>` - Input polygon
+    /// * `delta` - `i32` - Offset distance (positive = expansion, negative = contraction)
     ///
     /// # Returns
-    /// Vec<Vec<Point<i32>>> - Result polygons
+    /// `Vec<Vec<Point<i32>>>` - Result polygons
     pub fn execute(&mut self, polygon: &Vec<Point<i32>>, delta: i32) -> Vec<Vec<Point<i32>>> {
         self.src_polygon = self.format_path(polygon);
 

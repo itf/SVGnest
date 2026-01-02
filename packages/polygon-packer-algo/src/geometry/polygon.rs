@@ -3,19 +3,37 @@ use crate::geometry::point::Point;
 use crate::utils::math::cycle_index;
 use crate::utils::number::Number;
 
+/// A 2D polygon with geometric operations and utilities.
+///
+/// This struct represents a polygon with a buffer of points and provides
+/// various geometric operations like area calculation, bounding box computation,
+/// and point manipulation.
 pub struct Polygon<T: Number> {
+    /// Optional buffer containing point coordinates
     buffer: Option<Box<[T]>>,
+    /// Offset into the buffer where polygon data starts
     offset: usize,
+    /// Number of points in the polygon
     point_count: usize,
+    /// Whether the polygon is closed (first and last points connected)
     closed: bool,
+    /// Whether the closed state needs recalculation
     closed_dirty: bool,
+    /// Whether bounds need recalculation
     calculate_bounds_dirty: bool,
+    /// Whether this polygon represents a rectangle
     rectangle: bool,
+    /// Bounding rectangle of the polygon
     bounds: BoundRect<T>,
+    /// Current cursor position for drawing operations
     cursor: Point<T>,
 }
 
 impl<T: Number> Polygon<T> {
+    /// Creates a new empty polygon.
+    ///
+    /// # Returns
+    /// A new Polygon instance with default values
     pub fn new() -> Self {
         Self {
             buffer: None,

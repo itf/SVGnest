@@ -1,14 +1,31 @@
 use rand::Rng;
 
+/// A phenotype representing a potential solution in the genetic algorithm.
+///
+/// This struct encodes a placement solution with source indices, placement positions,
+/// rotations, and a fitness score that measures how good the solution is.
 #[derive(Debug, Clone)]
 pub struct Phenotype {
+    /// Source index identifying this phenotype
     source: u16,
+    /// Vector of placement positions (as polygon indices)
     placement: Vec<i32>,
+    /// Vector of rotation values for each placement
     rotation: Vec<u16>,
+    /// Fitness score of this phenotype (higher is better)
     fitness: f32,
 }
 
 impl Phenotype {
+    /// Creates a new phenotype with the given parameters.
+    ///
+    /// # Arguments
+    /// * `source` - Source index for this phenotype
+    /// * `placement` - Vector of placement positions
+    /// * `rotation` - Vector of rotation values
+    ///
+    /// # Returns
+    /// A new Phenotype instance with fitness initialized to 0.0
     pub fn new(source: u16, placement: Vec<i32>, rotation: Vec<u16>) -> Self {
         Phenotype {
             source,
@@ -65,10 +82,18 @@ impl Phenotype {
         true
     }
 
+    /// Gets the placement vector.
+    ///
+    /// # Returns
+    /// A slice of the placement positions
     pub fn placement(&self) -> &[i32] {
         &self.placement
     }
 
+    /// Gets the rotation vector.
+    ///
+    /// # Returns
+    /// A slice of the rotation values
     pub fn rotation(&self) -> &[u16] {
         &self.rotation
     }

@@ -11,18 +11,47 @@ use crate::utils::mid_value::MidValue;
 use crate::utils::number::Number;
 use num_traits::ToPrimitive;
 
+/// Helper structure for segment intersection checking during NFP calculation
+///
+/// Contains pointers to geometric elements needed for checking if a point
+/// lies on a line segment and performing intersection calculations.
 struct SegmentCheck<T: Number> {
+    /// The point being checked
     pub point: *mut Point<T>,
+    /// The polygon containing the segment
     pub polygon: *mut Polygon<T>,
+    /// Start point of the segment being checked
     pub segment_start: *mut Point<T>,
+    /// End point of the segment being checked
     pub segment_end: *mut Point<T>,
+    /// Start point of the checking range
     pub check_start: *mut Point<T>,
+    /// End point of the checking range
     pub check_end: *mut Point<T>,
+    /// Target point for the check
     pub target: *mut Point<T>,
+    /// Offset point for coordinate transformations
     pub offset: *const Point<T>,
 }
 
 impl<T: Number> SegmentCheck<T> {
+    /// Creates a new SegmentCheck instance with the given geometric elements
+    ///
+    /// # Arguments
+    /// * `point` - The point being checked
+    /// * `polygon` - The polygon containing the segment
+    /// * `segment_start` - Start point of the segment
+    /// * `segment_end` - End point of the segment
+    /// * `check_start` - Start of checking range
+    /// * `check_end` - End of checking range
+    /// * `target` - Target point for the check
+    /// * `offset` - Offset for coordinate transformation
+    ///
+    /// # Returns
+    /// * `SegmentCheck<T>` - A new instance configured with the provided pointers
+    ///
+    /// # Safety
+    /// All pointer arguments must be valid and remain valid for the lifetime of the SegmentCheck
     pub unsafe fn new(
         point: *mut Point<T>,
         polygon: *mut Polygon<T>,
@@ -46,6 +75,19 @@ impl<T: Number> SegmentCheck<T> {
     }
 }
 
+/// Calculates the distance from a point to a line segment
+///
+/// This function computes the perpendicular distance from a point to a line segment
+/// defined by two endpoints. Used in NFP calculations to determine point proximity.
+///
+/// # Arguments
+/// * `pool` - Point pool for temporary point allocations
+/// * `point` - The point to measure distance from
+/// * `segment_start` - Start point of the line segment
+/// * `segment_end` - End point of the line segment
+///
+/// # Returns
+/// * `f64` - The perpendicular distance from the point to the line segment
 fn point_distance<T: Number>(
     pool: &mut PointPool<T>,
     p: *const Point<T>,

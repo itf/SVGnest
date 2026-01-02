@@ -10,12 +10,24 @@ thread_local! {
     static INSTANCE: RefCell<GeneticAlgorithm> = RefCell::new(GeneticAlgorithm::new());
 }
 
+/// Genetic algorithm for optimizing polygon placement within bins.
+///
+/// This struct implements a genetic algorithm that evolves populations of
+/// polygon placements to find optimal arrangements that maximize packing efficiency.
+/// It uses mutation, crossover, and selection operations to improve placement
+/// solutions over generations.
 pub struct GeneticAlgorithm {
+    /// Width of the bin/container
     bin_width: f32,
+    /// Height of the bin/container
     bin_height: f32,
+    /// Current population of phenotypes (placement solutions)
     population: Vec<Phenotype>,
+    /// Number of allowed rotations for each polygon
     rotations: u8,
+    /// Mutation threshold probability
     threshold: f32,
+    /// Current source polygon index
     current_source: u16,
 }
 
@@ -38,6 +50,12 @@ impl GeneticAlgorithm {
         INSTANCE.with(|instance| f(&mut instance.borrow_mut()))
     }
 
+    /// Initializes the genetic algorithm with polygon nodes and configuration.
+    ///
+    /// # Arguments
+    /// * `nodes` - Array of polygon nodes to place
+    /// * `bounds` - Bounding rectangle of the bin
+    /// * `config` - Nesting configuration parameters
     pub fn init(&mut self, nodes: &[PolygonNode], bounds: &BoundRect<f32>, config: &NestConfig) {
         self.rotations = config.rotations;
         self.threshold = 0.01 * config.mutation_rate as f32;

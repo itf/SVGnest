@@ -1,3 +1,30 @@
+//! # Polygon Packer Algorithm
+//!
+//! This crate provides a high-performance polygon nesting algorithm implemented in Rust,
+//! designed for WebAssembly compilation. It efficiently packs 2D polygons into bins
+//! using advanced geometric algorithms and genetic optimization.
+//!
+//! ## Features
+//!
+//! - **Geometric Operations**: Clipper-based polygon clipping and offsetting
+//! - **NFP Calculation**: No-Fit Polygon computation for collision detection
+//! - **Genetic Algorithm**: Optimization for placement efficiency
+//! - **WebAssembly Support**: Direct compilation to WASM for web use
+//! - **Parallel Processing**: Multi-threaded computation where possible
+//!
+//! ## Modules
+//!
+//! - `clipper`: Polygon clipping and offsetting operations
+//! - `geometry`: Core geometric primitives and operations
+//! - `nesting`: Main nesting algorithm implementation
+//! - `genetic_algorithm`: Optimization using genetic algorithms
+//! - `utils`: Utility functions for math and bit operations
+//!
+//! ## Usage
+//!
+//! The main entry points are the `#[wasm_bindgen]` functions that can be called
+//! from JavaScript after compiling to WebAssembly.
+
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys::{Float32Array, Uint8Array};
 
@@ -15,6 +42,16 @@ use crate::utils::bit_ops::*;
 use crate::wasm_packer::WasmPacker;
 
 #[wasm_bindgen]
+/// Sets bits in a u32 value at a specified position.
+///
+/// # Arguments
+/// * `source` - The original u32 value
+/// * `value` - The value to set (as u16)
+/// * `index` - The bit position to start setting
+/// * `bit_count` - Number of bits to set
+///
+/// # Returns
+/// The modified u32 value with bits set
 pub fn set_bits_u32(source: u32, value: u16, index: u8, bit_count: u8) -> u32 {
     set_bits(source, value, index, bit_count)
 }
@@ -57,6 +94,17 @@ fn join_f32_chunks(data: &Vec<Vec<f32>>) -> Vec<f32> {
 }
 
 #[wasm_bindgen]
+/// Calculates No-Fit Polygons (NFPs) for a chunk of polygon pairs.
+///
+/// This function takes a flat buffer containing polygon pairs and computes
+/// their NFPs using geometric algorithms. The input buffer contains size-prefixed
+/// polygon data, and the output is a flat buffer of computed NFPs.
+///
+/// # Arguments
+/// * `buffer` - Flat f32 array containing size-prefixed polygon pairs
+///
+/// # Returns
+/// A Float32Array containing the computed NFPs with size prefixes
 pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
     // Reuse helper to split incoming flat buffer into chunks
     let chunks: Vec<Vec<f32>> = split_f32_chunks(buffer);
@@ -74,6 +122,11 @@ pub fn calculate_chunk_wasm(buffer: &[f32]) -> Float32Array {
 // WasmPacker WASM wrappers
 
 #[wasm_bindgen]
+/// Initializes the WasmPacker with configuration and polygon data.
+///
+/// # Arguments
+/// * `configuration` - Configuration bit flags as u32
+/// * `polygon_data` - Flat f32 array containing size-prefixed polygons
 pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32]) {
     let poygons = split_f32_chunks(polygon_data);
     WasmPacker::with_instance(|packer| {
@@ -82,6 +135,13 @@ pub fn wasm_packer_init(configuration: u32, polygon_data: &[f32]) {
 }
 
 #[wasm_bindgen]
+/// Retrieves polygon pairs for NFP calculation, grouped into chunks.
+///
+/// # Arguments
+/// * `chunk_size` - Maximum number of pairs per chunk
+///
+/// # Returns
+/// A Float32Array containing chunked polygon pairs with size prefixes
 pub fn wasm_packer_get_pairs(chunk_size: u16) -> Float32Array {
     // Get pairs directly as Vec<Vec<f32>> from packer
     let pairs: Vec<Vec<f32>> = WasmPacker::with_instance(|packer| packer.get_pairs());
@@ -112,6 +172,13 @@ pub fn wasm_packer_get_pairs(chunk_size: u16) -> Float32Array {
 }
 
 #[wasm_bindgen]
+/// Computes placement data using generated NFPs.
+///
+/// # Arguments
+/// * `generated_nfp_flat` - Flat f32 array of generated NFPs with size prefixes
+///
+/// # Returns
+/// A Float32Array containing placement data
 pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Array {
     // Parse the flat f32 array where each NFP is prefixed by its size encoded as a f32:
     // [size1: f32, word1, word2, ..., size2: f32, ...]
@@ -131,6 +198,13 @@ pub fn wasm_packer_get_placement_data(generated_nfp_flat: &[f32]) -> Float32Arra
 }
 
 #[wasm_bindgen]
+/// Computes final placement results from placement data.
+///
+/// # Arguments
+/// * `placements_flat` - Flat f32 array of placement data with size prefixes
+///
+/// # Returns
+/// A Uint8Array containing the serialized placement results
 pub fn wasm_packer_get_placement_result(placements_flat: &[f32]) -> Uint8Array {
     // Parse the flat f32 array into Vec<Vec<f32>> using explicit sizes array
     let placements_vec: Vec<Vec<f32>> = split_f32_chunks(&placements_flat);
@@ -143,6 +217,7 @@ pub fn wasm_packer_get_placement_result(placements_flat: &[f32]) -> Uint8Array {
 }
 
 #[wasm_bindgen]
+/// Stops the WasmPacker and cleans up resources.
 pub fn wasm_packer_stop() {
     WasmPacker::with_instance(|packer| {
         packer.stop();
@@ -151,13 +226,14 @@ pub fn wasm_packer_stop() {
 
 /// Run a full nesting flow entirely in Rust without using workers.
 ///
-/// Steps performed:
-/// 1. Initialize packer with configuration and polygon data (size-prefixed f32 array).
-/// 2. Request pairs from packer, split into chunks and run `calculate_chunk_wasm` on
-///    each chunk to produce generated NFPs.
-/// 3. Merge generated NFPs and request placement data from packer.
-/// 4. Run `calculate_chunk_wasm` on the placement data to obtain placements.
-/// 5. Ask packer to serialize the placement result and return it as `Uint8Array`.
+/// This function performs the complete polygon nesting algorithm:
+/// 1. Initialize packer with configuration and polygon data
+/// 2. Generate NFPs for all polygon pairs
+/// 3. Compute optimal placements using genetic algorithms
+/// 4. Return serialized placement results
+///
+/// # Returns
+/// A Uint8Array containing the serialized nesting results
 #[wasm_bindgen]
 pub fn wasm_nest() -> Uint8Array {
     // Run the flow directly using the WasmPacker singleton to avoid extra

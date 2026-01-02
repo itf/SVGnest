@@ -92,6 +92,21 @@ pub fn get_first_placement(nfp_buffer: &[f32], first_point: &Point<f32>) -> Vec<
     vec![position_x, position_y]
 }
 
+/// Calculates optimal placement data for a polygon within the available space
+///
+/// This function evaluates all possible positions within the final NFP (No-Fit Polygon)
+/// to find the best placement that minimizes area usage and respects boundaries.
+///
+/// # Arguments
+/// * `final_nfp` - The combined NFP defining valid placement regions
+/// * `placed` - Already placed polygons to avoid collision
+/// * `node` - The polygon node being placed
+/// * `placement` - Current placement attempt data
+/// * `first_point` - Reference point for positioning
+/// * `input_y` - Y-coordinate constraint for placement
+///
+/// # Returns
+/// * `Vec<f32>` - Placement data [x, y, width, area, min_x] for the optimal position
 pub fn get_placement_data(
     final_nfp: &Vec<Vec<Point<i32>>>,
     placed: &[PolygonNode],
@@ -220,6 +235,20 @@ pub fn calculate_combined_nfps(
 
 /// Get final NFPs by combining placed nodes' NFPs and subtracting from bin NFP
 /// Rust port of ClipperWrapper.getFinalNfps
+/// Computes the final NFP by combining all relevant NFPs and subtracting from bin NFP
+///
+/// This function combines NFPs from all placed polygons and performs a difference
+/// operation with the bin NFP to determine the valid placement region.
+///
+/// # Arguments
+/// * `place_content` - Contains NFP cache and polygon data
+/// * `placed` - Already placed polygons
+/// * `path` - The polygon being placed
+/// * `bin_nfp` - The bin's NFP wrapper
+/// * `placement` - Current placement positions
+///
+/// # Returns
+/// * `Vec<Vec<Point<i32>>>` - The final valid placement regions
 pub fn get_final_nfps(
     place_content: &PlaceContent,
     placed: &[PolygonNode],
@@ -241,6 +270,18 @@ pub fn get_final_nfps(
     get_final_nfp(&combined_nfp, &clipper_bin_nfp)
 }
 
+/// Creates the final result buffer containing placement data and fitness score
+///
+/// This function serializes the placement results into a compact f32 buffer
+/// that can be returned to the WebAssembly caller.
+///
+/// # Arguments
+/// * `placements` - Array of placement positions for each polygon
+/// * `path_items` - Array of path item data for each polygon
+/// * `fitness` - Fitness score of the placement solution
+///
+/// # Returns
+/// * `Vec<f32>` - Serialized result buffer containing fitness and placement data
 pub fn get_result(placements: &[Vec<f32>], path_items: &[Vec<u32>], fitness: f32) -> Vec<f32> {
     let placement_count = path_items.len();
     let mut info = vec![0u32; placement_count];
@@ -280,6 +321,17 @@ pub fn get_result(placements: &[Vec<f32>], path_items: &[Vec<u32>], fitness: f32
 
 /// Port of TypeScript placePaths function
 /// Main placement algorithm that packs polygons into bins
+/// Main placement algorithm that positions polygons using NFP calculations
+///
+/// This function implements the core nesting algorithm that places polygons
+/// one by one, using NFPs to ensure no overlaps occur. It uses a bottom-left
+/// fill approach to optimize material usage.
+///
+/// # Arguments
+/// * `buffer` - Input buffer containing polygon data and NFP cache
+///
+/// # Returns
+/// * `Vec<f32>` - Result buffer containing placement positions and fitness score
 pub fn place_paths(buffer: &[f32]) -> Vec<f32> {
     let mut place_content = PlaceContent::new();
     place_content.init(buffer);

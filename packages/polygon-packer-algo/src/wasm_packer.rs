@@ -11,13 +11,26 @@ use crate::{
 };
 use std::cell::RefCell;
 
+/// WebAssembly interface for the polygon packing algorithm.
+///
+/// This struct provides the main interface for running the polygon nesting
+/// algorithm from JavaScript/WebAssembly. It manages the complete packing
+/// workflow including initialization, pair generation, NFP calculation,
+/// and final placement optimization.
 pub struct WasmPacker {
+    /// The bin/container polygon node
     bin_node: Option<PolygonNode>,
+    /// Area of the bin
     bin_area: f32,
+    /// Bounding rectangle of the bin
     bin_bounds: Option<BoundRect<f32>>,
+    /// Bounding rectangle of the result
     result_bounds: Option<BoundRect<f32>>,
+    /// Best placement solution found
     best: Option<Vec<f32>>,
+    /// List of polygon nodes to place
     nodes: Vec<PolygonNode>,
+    /// Configuration parameters
     config: NestConfig,
 }
 
@@ -47,6 +60,11 @@ impl WasmPacker {
         INSTANCE.with(|instance| f(&mut instance.borrow_mut()))
     }
 
+    /// Initializes the packer with configuration and polygon data.
+    ///
+    /// # Arguments
+    /// * `configuration` - Configuration bit flags
+    /// * `polygon_data` - Vector of polygon data chunks (size-prefixed f32 arrays)
     pub fn init(&mut self, configuration: u32, mut polygon_data: Vec<Vec<f32>>) {
         // `polygon_data` is expected as a Vec of polygons, where the last polygon
         // is the bin. Take the last element as the bin polygon and treat the
