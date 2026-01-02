@@ -7,7 +7,8 @@ const wasmPackPath: string = path.join(process.env.HOME || '', '.cargo', 'bin', 
 const wasmOptPath: string = path.join(process.env.HOME || '', '.cargo', 'bin', 'wasm-opt');
 
 // Set RUSTFLAGS to enable SIMD support and optimize for size
-const command: string = `RUSTFLAGS="-C target-feature=+simd128" ${wasmPackPath} build --release --no-opt --target web --out-name wasm-nesting --out-dir ./pkg`;
+// Using --target no-modules to avoid generating unnecessary glue code
+const command: string = `RUSTFLAGS="-C target-feature=+simd128" ${wasmPackPath} build --release --no-opt --target no-modules --out-name polygon-packer --out-dir ./pkg`;
 console.log(`Running command: ${command}`);
 
 exec(command, (error: Error | null, stdout: string, stderr: string) => {
@@ -20,7 +21,7 @@ exec(command, (error: Error | null, stdout: string, stderr: string) => {
     console.log('stderr:', stderr);
 
     // Try to run wasm-opt with SIMD support for additional size optimization
-    const wasmFile: string = path.join(__dirname, '..', 'pkg', 'wasm-nesting_bg.wasm');
+    const wasmFile: string = path.join(__dirname, '..', 'pkg', 'polygon-packer_bg.wasm');
 
     // Try multiple possible locations for wasm-opt
     const possibleWasmOptPaths: string[] = [wasmOptPath, '/usr/bin/wasm-opt', '/usr/local/bin/wasm-opt'];
@@ -60,8 +61,8 @@ exec(command, (error: Error | null, stdout: string, stderr: string) => {
 
 // Function to copy WASM file to dist folder
 function copyWasmToDist(): void {
-    const sourcePath: string = path.join(__dirname, '..', 'pkg', 'wasm-nesting_bg.wasm');
-    const destPath: string = path.join(__dirname, '../../..', 'dist', 'wasm-nesting.wasm');
+    const sourcePath: string = path.join(__dirname, '..', 'pkg', 'polygon-packer_bg.wasm');
+    const destPath: string = path.join(__dirname, '../../..', 'dist', 'polygon-packer.wasm');
 
     try {
         // Ensure dist directory exists
@@ -71,7 +72,7 @@ function copyWasmToDist(): void {
         }
 
         fs.copyFileSync(sourcePath, destPath);
-        console.log('✅ WASM file copied successfully to dist/wasm-nesting.wasm');
+        console.log('✅ WASM file copied successfully to dist/polygon-packer.wasm');
     } catch (error: any) {
         console.error('❌ Error copying WASM file:', error.message);
         process.exit(1);

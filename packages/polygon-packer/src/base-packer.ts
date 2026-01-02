@@ -23,7 +23,7 @@ export default class BasePacker {
     }
 
     protected async initWasm() {
-        this.#wasmBuffer = await (await fetch('dist/wasm-nesting.wasm')).arrayBuffer();
+        this.#wasmBuffer = await (await fetch('dist/polygon-packer.wasm')).arrayBuffer();
         this.#wasmNesting.init(this.cloneWasmBuffer());
     }
 
