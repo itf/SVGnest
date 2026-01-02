@@ -8,7 +8,7 @@
         "jsx": "react",
         "allowJs": true,
         "allowSyntheticDefaultImports": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "skipLibCheck": true,
         "lib": ["dom", "es2016", "esnext.bigint"]
     }
