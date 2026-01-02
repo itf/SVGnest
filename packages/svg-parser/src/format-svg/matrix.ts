@@ -1,6 +1,14 @@
 import { degreesToRadians } from '../helpers';
 import { IPoint, MATRIX_OPERATIONS } from '../types';
 
+/**
+ * 2D transformation matrix for SVG coordinate transformations.
+ * 
+ * Manages a queue of transformation matrices (translate, rotate, scale, etc.)
+ * and efficiently applies them to points. Caches the combined matrix for performance.
+ * 
+ * @group Core
+ */
 export default class Matrix {
     // combined matrix cache
     #cache: number[] = null;
@@ -8,6 +16,11 @@ export default class Matrix {
     // list of matrixes to apply
     #queue: number[][] = [];
 
+    /**
+     * Checks if the transformation is an identity matrix (no transformation).
+     * 
+     * @returns `true` if matrix performs no transformation
+     */
     public get isIdentity(): boolean {
         if (this.#cache === null) {
             this.#cache = this.toArray();
@@ -16,9 +29,17 @@ export default class Matrix {
         return Matrix.getIndent(this.#cache);
     }
 
-    // Apply list of matrixes to (x,y) point.
-    // If `isRelative` set, `translate` component of matrix will be skipped
-    //
+    /**
+     * Applies the transformation matrix to a point.
+     * 
+     * Transforms the given (x,y) coordinates according to all queued transformations.
+     * If `isRelative` is true, translation components are ignored (for relative coordinates).
+     * 
+     * @param x - X coordinate
+     * @param y - Y coordinate
+     * @param isRelative - Whether to treat coordinates as relative (skip translation)
+     * @returns Transformed point
+     */
     public calc(x: number, y: number, isRelative: boolean = false): IPoint {
         // Don't change point on empty transforms queue
         if (!this.#queue.length) {

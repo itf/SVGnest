@@ -2,6 +2,13 @@ import BasicSegment from './basic-segment';
 import { IBasicSegmentData, IQuadraticSegmentData } from '../types';
 import { IPoint } from '../../../types';
 
+/**
+ * Linearizes quadratic Bézier curve segments.
+ * 
+ * Uses control point uniformity to determine flatness.
+ * 
+ * @group Segment Builders
+ */
 export default class QuadraticSegment extends BasicSegment {
     #control: IPoint;
 
@@ -10,6 +17,11 @@ export default class QuadraticSegment extends BasicSegment {
         this.#control = config.control;
     }
 
+    /**
+     * Checks flatness using control point uniformity test.
+     * 
+     * @returns `true` if curve is flat enough
+     */
     protected get isFlat(): boolean {
         const ux: number = QuadraticSegment.getUniform(this.point1.x, this.point2.x, this.#control.x);
         const uy: number = QuadraticSegment.getUniform(this.point1.y, this.point2.y, this.#control.y);
@@ -17,8 +29,11 @@ export default class QuadraticSegment extends BasicSegment {
         return ux + uy <= 4 * this.tolerance * this.tolerance;
     }
 
-    // subdivide a single Bezier
-    // t is the percent along the Bezier to divide at. eg. 0.5
+    /**
+     * Subdivides quadratic curve at midpoint.
+     * 
+     * @returns Two quadratic segments representing left and right halves
+     */
     protected subdivide(): BasicSegment[] {
         const mid1: IPoint = BasicSegment.getMidPoint(this.point1, this.#control);
         const mid2: IPoint = BasicSegment.getMidPoint(this.#control, this.point2);

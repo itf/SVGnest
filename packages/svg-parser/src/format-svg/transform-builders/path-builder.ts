@@ -14,6 +14,14 @@ import Matrix from '../matrix';
 import { IPoint, SEGMENT_KEYS, PATH_COMMAND } from '../../types';
 import BasicTransformBuilder from './basic-transform-builder';
 
+/**
+ * Applies transformations to SVG path elements.
+ * 
+ * Transforms all path segments (lines, curves, arcs) according to the transformation matrix,
+ * handling special cases for horizontal/vertical lines and elliptical arcs.
+ * 
+ * @group Transform Builders
+ */
 export default class PathBuilder extends BasicTransformBuilder {
     private getNewSegment(command: PATH_COMMAND, segment: CommandMadeAbsolute, prev: IPoint): void {
         switch (command) {
@@ -45,6 +53,14 @@ export default class PathBuilder extends BasicTransformBuilder {
         }
     }
 
+    /**
+     * Applies the transformation to all path segments.
+     * 
+     * Parses the path definition, transforms all coordinate points,
+     * and regenerates the path string.
+     * 
+     * @returns Transformed element node
+     */
     public getResult(): INode {
         const rawSegments: Command[] = parseSVG(this.element.attributes.d);
         const segments: CommandMadeAbsolute[] = makeAbsolute(rawSegments);
@@ -91,6 +107,12 @@ export default class PathBuilder extends BasicTransformBuilder {
         return super.getResult();
     }
 
+    /**
+     * Generates an SVG path definition string from path segments.
+     * 
+     * @param segments - Array of absolute path commands
+     * @returns Path definition string (d attribute value)
+     */
     public static generateDFromPathSegments(segments: CommandMadeAbsolute[]): string {
         return segments
             .map(segment => {

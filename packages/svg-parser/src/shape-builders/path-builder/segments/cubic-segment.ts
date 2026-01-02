@@ -2,6 +2,14 @@ import BasicSegment from './basic-segment';
 import { IBasicSegmentData, ICubicSegmentData } from '../types';
 import { IPoint } from '../../../types';
 
+/**
+ * Linearizes cubic Bézier curve segments.
+ * 
+ * Uses the flatness criterion based on control point deviation
+ * to determine when subdivision is complete.
+ * 
+ * @group Segment Builders
+ */
 export default class CubicSegment extends BasicSegment {
     #control1: IPoint;
     #control2: IPoint;
@@ -13,6 +21,14 @@ export default class CubicSegment extends BasicSegment {
         this.#control2 = config.control2;
     }
 
+    /**
+     * Checks flatness using control point uniformity test.
+     * 
+     * A cubic curve is considered flat when control points are close enough
+     * to the line connecting the endpoints.
+     * 
+     * @returns `true` if curve is flat enough
+     */
     protected get isFlat(): boolean {
         const ux: number = Math.max(
             CubicSegment.getUniform(this.#control1.x, this.point1.x, this.point2.x),
@@ -26,6 +42,11 @@ export default class CubicSegment extends BasicSegment {
         return ux + uy <= 16 * this.tolerance * this.tolerance;
     }
 
+    /**
+     * Subdivides cubic curve at midpoint using De Casteljau's algorithm.
+     * 
+     * @returns Two cubic segments representing left and right halves
+     */
     protected subdivide(): BasicSegment[] {
         const mid1: IPoint = BasicSegment.getMidPoint(this.point1, this.#control1);
         const mid2: IPoint = BasicSegment.getMidPoint(this.#control2, this.point2);

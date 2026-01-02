@@ -2,6 +2,14 @@ import { IPoint } from '../../../types';
 import { IArcSegmentConfig, IArcSegmentData, IBasicSegmentData } from '../types';
 import BasicSegment from './basic-segment';
 
+/**
+ * Linearizes elliptical arc segments.
+ * 
+ * Converts SVG arc commands into sequences of line segments by
+ * recursively subdividing the arc based on flatness criteria.
+ * 
+ * @group Segment Builders
+ */
 export default class ArcSegment extends BasicSegment {
     #arcConfig: IArcSegmentConfig;
 
@@ -11,6 +19,11 @@ export default class ArcSegment extends BasicSegment {
         this.#arcConfig = arc;
     }
 
+    /**
+     * Checks flatness by comparing arc midpoint to line midpoint.
+     * 
+     * @returns `true` if arc is flat enough
+     */
     protected get isFlat(): boolean {
         const subArc: ArcSegment = this.splitArc();
         const arcMid: IPoint = subArc.export(1);
@@ -70,7 +83,7 @@ export default class ArcSegment extends BasicSegment {
         let sign: number = largeArc !== sweep ? -1 : 1;
         const sq: number = Math.max(
             (nextSquare.x * nextSquare.y - nextSquare.x * square1.y - nextSquare.y * square1.x) /
-                (nextSquare.x * square1.y + nextSquare.y * square1.x),
+            (nextSquare.x * square1.y + nextSquare.y * square1.x),
             0
         );
 

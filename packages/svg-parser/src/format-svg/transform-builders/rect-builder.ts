@@ -4,7 +4,23 @@ import Matrix from '../matrix';
 import { IPoint, SVG_TAG } from '../../types';
 import BasicTransformBuilder from './basic-transform-builder';
 
+/**
+ * Applies transformations to SVG rect elements.
+ * 
+ * Converts rectangles to polygon elements by transforming all four corners,
+ * allowing arbitrary rotations and skews.
+ * 
+ * @group Transform Builders
+ */
 export default class RectBuilder extends BasicTransformBuilder {
+    /**
+     * Converts rect to polygon and applies transformation.
+     * 
+     * Transforms all four corners of the rectangle and converts
+     * the element to a polygon with the transformed points.
+     * 
+     * @returns Transformed polygon element (originally a rect)
+     */
     public getResult(): INode {
         const x: number = this.getFloatAtrribute('x');
         const y: number = this.getFloatAtrribute('y');

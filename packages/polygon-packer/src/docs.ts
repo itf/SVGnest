@@ -1,7 +1,7 @@
 /**
  * Documentation entry point for polygon-packer package.
  * This file is only used for generating documentation and should not be imported in production code.
- * @module PolygonPacker
+ * @module polygon-packer
  * @packageDocumentation
  */
 

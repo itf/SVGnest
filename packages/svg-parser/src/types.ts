@@ -1,3 +1,7 @@
+/**
+ * SVG path command types.
+ * Includes both uppercase (absolute) and lowercase (relative) commands.
+ */
 export enum PATH_COMMAND {
     M = 'M',
     L = 'L',
@@ -21,6 +25,9 @@ export enum PATH_COMMAND {
     z = 'z'
 }
 
+/**
+ * Supported SVG element tag names.
+ */
 export enum SVG_TAG {
     LINE = 'line',
     CIRCLE = 'circle',
@@ -35,13 +42,24 @@ export enum SVG_TAG {
     CLIP_PATH = 'clipPath'
 }
 
+/**
+ * Represents a 2D point.
+ */
 export interface IPoint {
+    /** X coordinate */
     x: number;
+    /** Y coordinate */
     y: number;
 }
 
+/**
+ * Union type for SVG property values.
+ */
 export type SVGProperty = number | string;
 
+/**
+ * Keys for accessing SVG segment properties.
+ */
 export enum SEGMENT_KEYS {
     X = 'x',
     Y = 'y',
@@ -51,6 +69,9 @@ export enum SEGMENT_KEYS {
     Y2 = 'y2'
 }
 
+/**
+ * SVG transformation operation types.
+ */
 export enum MATRIX_OPERATIONS {
     MATRIX = 'matrix',
     SCALE = 'scale',
@@ -61,22 +82,48 @@ export enum MATRIX_OPERATIONS {
     NONE = ''
 }
 
+/**
+ * Configuration for the nesting algorithm.
+ */
 export type NestConfig = {
+    /** Tolerance for curve approximation */
+    /** Tolerance for curve approximation */
     curveTolerance: number;
+    /** Spacing between parts */
     spacing: number;
+    /** Number of rotation angles to try */
     rotations: number;
+    /** Genetic algorithm population size */
     populationSize: number;
+    /** Mutation rate for genetic algorithm */
     mutationRate: number;
+    /** Whether to use holes in polygons */
     useHoles: boolean;
 };
 
-export type FlattenedData = { sources: number[]; holes: number[] };
+/**
+ * Flattened polygon tree structure.
+ */
+export type FlattenedData = {
+    /** Source polygon indices */
+    sources: number[];
+    /** Hole polygon indices */
+    holes: number[]
+};
 
+/**
+ * Hierarchical polygon structure with nested children.
+ */
 export type SourceItem = {
+    /** Source polygon index */
     source: number;
+    /** Nested child polygons (holes) */
     children: SourceItem[];
 }
 
+/**
+ * Interface for accessing placement results from the nesting algorithm.
+ */
 export type PlacementWrapper = {
     readonly placePercentage: number;
     readonly numPlacedParts: number;

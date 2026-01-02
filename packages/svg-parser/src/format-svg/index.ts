@@ -19,7 +19,15 @@ const ALLOWED_TAGS: SVG_TAG[] = [
 
 const TRANSFORM_TAGS: SVG_TAG[] = [SVG_TAG.G, SVG_TAG.SVG, SVG_TAG.DEFS, SVG_TAG.CLIP_PATH];
 
-// split a compound path (paths with M, m commands) into an array of paths
+/**
+ * Splits a compound SVG path into multiple separate paths.
+ * 
+ * Paths with multiple M (moveto) commands are split into individual path elements.
+ * Recursively processes all children in the tree.
+ * 
+ * @param element - SVG node to split
+ * @returns Array of split path nodes
+ */
 function splitPath(element: INode): INode[] {
     // only operate on original DOM tree, ignore any children that are added. Avoid infinite loops
     const children: INode[] = element.children;
@@ -75,7 +83,7 @@ function splitPath(element: INode): INode[] {
 
     return totalPathes.map(definitions => ({
         ...element,
-        children: [],
+        children: [] as INode[],
         attributes: {
             ...element.attributes,
             d: PathBuilder.generateDFromPathSegments(definitions)
@@ -83,7 +91,12 @@ function splitPath(element: INode): INode[] {
     }));
 }
 
-// bring all child elements to the top level
+/**
+ * Flattens the SVG node hierarchy by bringing all child elements to the top level.
+ * 
+ * @param root - Root SVG node
+ * @param element - Current element being processed (defaults to root)
+ */
 function flatten(root: INode, element: INode = root): void {
     const nodeCount: number = element.children.length;
     let i: number = 0;
@@ -104,8 +117,13 @@ function flatten(root: INode, element: INode = root): void {
     }
 }
 
-// remove all elements with tag name not in the whitelist
-// use this to remove <text>, <g> etc that don't represent shapes
+/**
+ * Removes elements with tag names not in the allowed list.
+ * 
+ * Filters out text, g, and other non-shape elements.
+ * 
+ * @param element - Element to filter
+ */
 function filterNodes(element: INode): void {
     element.children = element.children.filter((child: INode) => {
         const allowed = ALLOWED_TAGS.indexOf(child.name as SVG_TAG) !== -1;
@@ -118,6 +136,14 @@ function filterNodes(element: INode): void {
     });
 }
 
+/**
+ * Parses an SVG transform attribute string into a Matrix object.
+ * 
+ * Handles matrix, translate, scale, rotate, skewX, and skewY operations.
+ * 
+ * @param transformString - SVG transform attribute value
+ * @returns Matrix representing the combined transformations
+ */
 function transformParse(transformString: string = ''): Matrix {
     if (!transformString) {
         return new Matrix();
@@ -151,7 +177,14 @@ function transformParse(transformString: string = ''): Matrix {
     return matrix;
 }
 
-// recursively apply the transform property to the given element
+/**
+ * Recursively applies transformations to an SVG element and its children.
+ * 
+ * Transforms are applied cumulatively down the tree hierarchy.
+ * 
+ * @param element - Element to transform
+ * @param globalTransform - Accumulated transform string from ancestors
+ */
 function applyTransform(element: INode, globalTransform: string = ''): void {
     const transformAttribute: string = element.attributes.transform;
     const transformString: string = transformAttribute ? globalTransform + transformAttribute : globalTransform;
@@ -181,6 +214,21 @@ function applyTransform(element: INode, globalTransform: string = ''): void {
     }
 }
 
+/**
+ * Formats and normalizes an SVG string for polygon extraction.
+ * 
+ * Performs the following operations:
+ * - Parses SVG string
+ * - Applies all transformations
+ * - Flattens element hierarchy
+ * - Filters out non-shape elements
+ * - Splits compound paths
+ * - Assigns unique GUIDs to elements
+ * 
+ * @param svgString - Raw SVG markup
+ * @returns Formatted SVG node tree
+ * @throws Error if SVG cannot be parsed or has no children
+ */
 export default function formatSVG(svgString: string): INode {
     let svg: INode = null;
 

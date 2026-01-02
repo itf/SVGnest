@@ -5,6 +5,23 @@ import { FlattenedData, NestConfig, SVG_TAG, PlacementWrapper } from './types';
 import { convertElement } from './helpers';
 import SHAPE_BUILDERS from './shape-builders';
 
+/**
+ * Parser for SVG elements and conversion to polygon data for nesting.
+ * 
+ * Handles parsing SVG strings, extracting shapes, converting them to polygons,
+ * and applying placement results back to SVG format.
+ * 
+ * @group Core
+ * @example
+ * ```typescript
+ * const parser = new SVGParser();
+ * parser.init(svgString);
+ * parser.setBin(containerElement);
+ * const polygons = parser.getPolygons(config);
+ * // After packing...
+ * const resultSvg = parser.applyPlacement(placementWrapper);
+ * ```
+ */
 export default class SVGParser {
     #svgRoot: INode = null;
 
@@ -14,10 +31,26 @@ export default class SVGParser {
 
     #parts: INode[] = null;
 
+    /**
+     * Initializes the parser with an SVG string.
+     * 
+     * Parses and formats the SVG, making it ready for polygon extraction.
+     * 
+     * @param svgString - Raw SVG markup to parse
+     */
     public init(svgString: string): void {
         this.#svgRoot = formatSVG(svgString);
     }
 
+    /**
+     * Extracts polygons from SVG elements for nesting.
+     * 
+     * Converts all SVG shapes (except the bin) into Float32Array polygon representations
+     * suitable for the nesting algorithm.
+     * 
+     * @param configuration - Nesting configuration including curve tolerance
+     * @returns Array of polygons as Float32Arrays
+     */
     public getPolygons(configuration: NestConfig): Float32Array[] {
         const { curveTolerance } = configuration;
         this.#parts = this.#svgRoot.children.filter(node => node.attributes.guid !== this.#bin.attributes.guid);
@@ -34,10 +67,22 @@ export default class SVGParser {
         return result;
     }
 
+    /**
+     * Sets the container (bin) element for nesting.
+     * 
+     * The bin defines the boundary within which parts will be nested.
+     * 
+     * @param element - SVG element to use as the nesting container
+     */
     public setBin(element: SVGElement): void {
         this.#bin = convertElement(element);
     }
 
+    /**
+     * Gets the root SVG element's attributes.
+     * 
+     * @returns Object containing SVG attributes (viewBox, width, height, etc.)
+     */
     public get svgAttributes(): { [key: string]: string } {
         return this.#svgRoot.attributes;
     }
@@ -50,7 +95,15 @@ export default class SVGParser {
             : new Float32Array(0);
     }
 
-    // returns an array of SVG elements that represent the placement, for export or rendering
+    /**
+     * Applies nesting results to generate output SVG.
+     * 
+     * Transforms the original SVG elements according to the placement results,
+     * including position, rotation, and hole handling.
+     * 
+     * @param placementWrapper - Wrapper containing placement results from the nesting algorithm
+     * @returns SVG string with parts positioned according to nesting results
+     */
     public applyPlacement(placementWrapper: PlacementWrapper): string {
         const sources = placementWrapper.sources;
         const clone: INode[] = [];
@@ -131,10 +184,20 @@ export default class SVGParser {
         return stringify(resultSvg);
     }
 
+    /**
+     * Gets the current SVG as a string.
+     * 
+     * @returns Stringified SVG representation
+     */
     public get svgString(): string {
         return stringify(this.#svgRoot);
     }
 
+    /**
+     * Gets the bin polygon as a Float32Array.
+     * 
+     * @returns Polygon representation of the bin/container
+     */
     public get binPolygon(): Float32Array {
         return this.#binPolygon;
     }

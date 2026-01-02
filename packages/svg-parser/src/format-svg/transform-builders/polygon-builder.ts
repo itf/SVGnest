@@ -4,7 +4,22 @@ import Matrix from '../matrix';
 import { IPoint } from '../../types';
 import BasicTransformBuilder from './basic-transform-builder';
 
+/**
+ * Applies transformations to SVG polygon and polyline elements.
+ * 
+ * Transforms all points in the polygon/polyline according to the transformation matrix.
+ * 
+ * @group Transform Builders
+ */
 export default class PolygonBuilder extends BasicTransformBuilder {
+    /**
+     * Applies transformation to all polygon points.
+     * 
+     * Transforms each point in the points attribute and reconstructs
+     * the points string.
+     * 
+     * @returns Transformed element node
+     */
     public getResult(): INode {
         const points: IPoint[] = this.convertPointsToArray();
         const pointCount = points.length;

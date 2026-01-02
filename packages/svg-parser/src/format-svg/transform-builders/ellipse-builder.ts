@@ -6,7 +6,23 @@ import BasicTransformBuilder from './basic-transform-builder';
 import { SVG_TAG } from '../../types';
 import PathBuilder from './path-builder';
 
+/**
+ * Applies transformations to SVG ellipse elements.
+ * 
+ * Converts ellipses to path elements to support rotation transformations,
+ * since ellipse elements cannot be rotated without a transform attribute.
+ * 
+ * @group Transform Builders
+ */
 export default class EllipseBuilder extends PathBuilder {
+    /**
+     * Converts ellipse to path and applies transformation.
+     * 
+     * Replaces the ellipse element with a path consisting of two arcs,
+     * allowing rotation to be applied via path transformation.
+     * 
+     * @returns Transformed path element (originally an ellipse)
+     */
     public getResult(): INode {
         // the goal is to remove the transform property, but an ellipse without a transform will have no rotation
         // for the sake of simplicity, we will replace the ellipse with a path, and apply the transform to that path

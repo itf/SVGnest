@@ -14,6 +14,14 @@ import SEGMENT_BUILDERS from './segments';
 import BasicSegment from './segments/basic-segment';
 import { ICubicSegmentData, IQuadraticSegmentData, IBasicSegmentData, IArcSegmentData } from './types';
 
+/**
+ * Converts SVG path elements to polygons.
+ * 
+ * Parses path commands (M, L, C, Q, A, etc.) and linearizes all curves
+ * into sequences of straight line segments suitable for nesting.
+ * 
+ * @group Shape Builders
+ */
 export default class PathBuilder extends BasicShapeBuilder {
     public getResult(): Float32Array {
         const definition: string = this.element.attributes.d;

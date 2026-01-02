@@ -2,7 +2,7 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": [
     "packages/polygon-packer/src/docs.ts",
-    "packages/svg-parser/src/index.ts"
+    "packages/svg-parser/src/docs.ts"
   ],
   "entryPointStrategy": "resolve",
   "out": "docs",
@@ -19,6 +19,12 @@
   "excludeProtected": false,
   "excludeExternals": true,
   "excludeInternal": false,
+  "visibilityFilters": {
+    "protected": true,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
   "readme": "readme.md",
   "name": "SVGnest TypeScript",
   "includeVersion": true,

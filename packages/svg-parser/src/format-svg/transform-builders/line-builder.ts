@@ -4,7 +4,22 @@ import Matrix from '../matrix';
 import { IPoint } from '../../types';
 import BasicTransformBuilder from './basic-transform-builder';
 
+/**
+ * Applies transformations to SVG line elements.
+ * 
+ * Transforms both endpoints of the line according to the transformation matrix. * 
+ * 
+ * @group Transform Builders
+ */
+
 export default class LineBuilder extends BasicTransformBuilder {
+    /**
+     * Applies transformation to the line.
+     * 
+     * Transforms both (x1, y1) and (x2, y2) endpoints.
+     * 
+     * @returns Transformed element node
+     */
     public getResult(): INode {
         const point1: IPoint = this.transform.calc(this.getFloatAtrribute('x1'), this.getFloatAtrribute('y1'));
         const point2: IPoint = this.transform.calc(this.getFloatAtrribute('x2'), this.getFloatAtrribute('y2'));
