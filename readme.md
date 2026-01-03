@@ -31,7 +31,7 @@ tool I splited it to packages for ability to reuse some modules in that tool.
 
 **SVGNest**: A browser-based vector nesting tool.
 
-**Demo:** http://svgnest.com
+**Demo:** https://yuriilychak.github.io/SVGnest/
 
 (requires SVG and webworker support). Mobile warning: running the demo is CPU intensive.
 
