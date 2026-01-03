@@ -15,11 +15,11 @@
 -   Migrated UI to React.
 -   Added dev server for ability to run it without additional plugins.
 -   Added singlethread realization via SingleThreadPacker class from polygon-packer package.
+-   Added TypeDoc and RustDoc into all packages. 
 
 ## Current TODO's
 
 -   Add node package for ability to run nesting tool from terminal on server-side.
--   Add es-doc for all files.
 -   Extruct gravity argument to configuration for ability to configure it on UI.
 
 ## Why I do it
