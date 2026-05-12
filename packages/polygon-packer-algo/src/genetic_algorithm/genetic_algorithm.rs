@@ -116,8 +116,9 @@ impl GeneticAlgorithm {
             }
 
             if self.get_mutate() {
-                let placement_idx = clone.placement()[i] as usize;
-                clone.rotation_mut()[i] = self.random_angle(&nodes[placement_idx]);
+                let source_id = clone.placement()[i];
+                let node = nodes.iter().find(|n| n.source == source_id).unwrap_or(&nodes[0]);
+                clone.rotation_mut()[i] = self.random_angle(node);
             }
         }
 

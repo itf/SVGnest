@@ -138,9 +138,12 @@ impl WasmPacker {
             .expect("Failed to get individual");
 
         // Update node rotations from individual
+        // placement[i] is a source ID, not an array index — look up by source
         for i in 0..individual.placement().len() {
-            let node_index = individual.placement()[i] as usize;
-            self.nodes[node_index].rotation = individual.rotation()[i] as f32;
+            let source_id = individual.placement()[i];
+            if let Some(node) = self.nodes.iter_mut().find(|n| n.source == source_id) {
+                node.rotation = individual.rotation()[i] as f32;
+            }
         }
 
         NFPStore::with_instance(|nfp_store| {
@@ -209,8 +212,10 @@ impl WasmPacker {
 
                 for j in 0..size as usize {
                     let path_data = Self::read_uint32_from_f32(&placements_data, offset + j);
-                    let path_id = get_u16(path_data, 1) as usize;
-                    placed_area += f32::abs_polygon_area(&self.nodes[path_id].mem_seg) as f32;
+                    let path_id = get_u16(path_data, 1) as i32;
+                    if let Some(node) = self.nodes.iter().find(|n| n.source == path_id) {
+                        placed_area += f32::abs_polygon_area(&node.mem_seg) as f32;
+                    }
                 }
             }
 

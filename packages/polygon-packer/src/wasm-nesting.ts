@@ -45,6 +45,7 @@ export default class WasmNesting {
         const instance = await WebAssembly.instantiate(module, imports);
 
         this.#wasm = instance.exports;
+        (this.#wasm as any).__wbindgen_start?.();
         this.#memSegs.fill(null);
 
         this.#isInitialized = true;
@@ -56,7 +57,7 @@ export default class WasmNesting {
     }
 
     public calculate(buffer: Float32Array): Float32Array {
-        const ptr0 = this.#passMem(buffer, this.#wasm.__wbindgen_export_1);
+        const ptr0 = this.#passMem(buffer, this.#wasm.__wbindgen_export_2);
         const ret = this.#wasm.calculate_chunk_wasm(ptr0, this.#vecLen);
 
         return this.#takeObject(ret) as Float32Array;
@@ -65,14 +66,18 @@ export default class WasmNesting {
     public init(configuration: NestConfig, polygons: Float32Array[]): void {
         const polygon_data = joinFloat32Arrays(polygons);
         const config = this.#serializeConfig(configuration);
-        const ptr0 = this.#passMem(polygon_data, this.#wasm.__wbindgen_export_1);
+        const ptr0 = this.#passMem(polygon_data, this.#wasm.__wbindgen_export_2);
         const len0 = this.#vecLen;
         this.#wasm.wasm_packer_init(config, ptr0, len0);
     }
 
-    public nest(): PlacementWrapper {
+    public nest(): PlacementWrapper | null {
         const ret = this.#wasm.wasm_nest();
         const result = this.#takeObject(ret) as Uint8Array;
+
+        if (result.length < 34) {
+            return null;
+        }
 
         return new PlacementWrapper(result.buffer as ArrayBuffer);
     }
@@ -86,7 +91,7 @@ export default class WasmNesting {
 
     public getPlacementData(generatedNfp: ArrayBuffer[]): Float32Array {
         const generated_nfp = mergeFloat32Arrays(generatedNfp);
-        const ptr0 = this.#passMem(generated_nfp, this.#wasm.__wbindgen_export_1);
+        const ptr0 = this.#passMem(generated_nfp, this.#wasm.__wbindgen_export_2);
         const len0 = this.#vecLen;
         const ret = this.#wasm.wasm_packer_get_placement_data(ptr0, len0);
         return this.#takeObject(ret) as Float32Array;
@@ -94,7 +99,7 @@ export default class WasmNesting {
 
     public getPlacementResult(placements: ArrayBuffer[]): PlacementWrapper {
         const placements_f32 = mergeFloat32Arrays(placements);
-        const ptr0 = this.#passMem(placements_f32, this.#wasm.__wbindgen_export_1);
+        const ptr0 = this.#passMem(placements_f32, this.#wasm.__wbindgen_export_2);
         const len0 = this.#vecLen;
         const ret = this.#wasm.wasm_packer_get_placement_result(ptr0, len0);
         const result = this.#takeObject(ret) as Uint8Array;
@@ -304,6 +309,23 @@ export default class WasmNesting {
                 },
                 __wbindgen_throw: (arg0: usize, arg1: usize): never => {
                     throw new Error(this.#getString(arg0, arg1));
+                },
+                // console_error_panic_hook imports
+                __wbg_new_8a6f238a6ece86ea: (): usize => {
+                    return this.#addHeapObject(new Error());
+                },
+                __wbg_stack_0ed75d68575b0f3c: (arg0: usize, arg1: usize): void => {
+                    const stack = (this.#getObject(arg1) as Error).stack ?? '';
+                    const encoded = new TextEncoder().encode(stack);
+                    const malloc = this.#wasm.__wbindgen_export_2;
+                    const ptr = malloc(encoded.length, 1) >>> 0;
+                    new Uint8Array(this.#wasm.memory.buffer).set(encoded, ptr);
+                    const view = new DataView(this.#wasm.memory.buffer);
+                    view.setInt32(arg0, ptr, true);
+                    view.setInt32(arg0 + 4, encoded.length, true);
+                },
+                __wbg_error_7534b8e9a36f1ab4: (arg0: usize, arg1: usize): void => {
+                    console.error(this.#getString(arg0, arg1));
                 }
             }
         };

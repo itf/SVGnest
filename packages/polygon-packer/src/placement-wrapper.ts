@@ -45,6 +45,8 @@ export default class PlacementWrapper implements IPlacementWrapper {
 
     #sources: SourceItem[];
 
+    #sourceMap: Map<u16, SourceItem>;
+
     constructor(buffer: ArrayBuffer) {
         this.#buffer = buffer;
         this.#view = new DataView(this.#buffer);
@@ -53,6 +55,10 @@ export default class PlacementWrapper implements IPlacementWrapper {
         this.#placementCount = this.#memSeg[1];
         this.#memSeg = this.#memSeg;
         this.#sources = this.sources;
+        this.#sourceMap = new Map(this.#sources.flatMap(s => [
+            [s.source, s],
+            ...s.children.map(c => [c.source, c] as [u16, SourceItem])
+        ]));
         this.#placement = 0;
         this.#offset = 0;
         this.#size = 0;
@@ -87,7 +93,7 @@ export default class PlacementWrapper implements IPlacementWrapper {
         this.#pointData = readUint32FromF32(this.#memSeg, this.#offset + index);
         this.#pointOffset = this.#offset + this.#size + (index << 1);
 
-        return this.#sources[this.id].source;
+        return (this.#sourceMap.get(this.id as u16) ?? this.#sources[0]).source;
     }
 
     /**
@@ -99,9 +105,9 @@ export default class PlacementWrapper implements IPlacementWrapper {
      * @returns Flattened children data, or `null` if the polygon has no children
      */
     public get flattnedChildren(): FlattenedData | null {
-        const source = this.#sources[this.id];
+        const source = this.#sourceMap.get(this.id as u16);
 
-        return source.children.length ? flattenTree(source.children, true) : null;
+        return source && source.children.length ? flattenTree(source.children, true) : null;
     }
 
     /**

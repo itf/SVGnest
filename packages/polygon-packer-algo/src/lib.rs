@@ -28,6 +28,11 @@
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys::{Float32Array, Uint8Array};
 
+#[wasm_bindgen(start)]
+pub fn init_panic_hook() {
+    console_error_panic_hook::set_once();
+}
+
 pub mod clipper;
 pub mod clipper_wrapper;
 pub mod constants;

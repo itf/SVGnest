@@ -33,6 +33,11 @@ thread_local! {
     static INSTANCE: RefCell<NFPStore> = RefCell::new(NFPStore::new());
 }
 
+/// Look up a node by its source ID (not array index).
+fn find_node_by_source(nodes: &[PolygonNode], source_id: i32) -> Option<&PolygonNode> {
+    nodes.iter().find(|n| n.source == source_id)
+}
+
 impl NFPStore {
     fn new() -> Self {
         NFPStore {
@@ -81,14 +86,19 @@ impl NFPStore {
         let mut new_cache: HashMap<u32, Vec<f32>> = HashMap::new();
 
         for i in 0..self.sources.len() {
-            let mut node = nodes[self.sources[i] as usize].clone();
+            let base = match find_node_by_source(nodes, self.sources[i]) {
+                Some(n) => n,
+                None => continue,
+            };
+            let mut node = base.clone();
             node.rotation = self.rotations[i] as f32;
 
             self.update_cache(bin_node, &node, true, &mut new_cache);
 
             for j in 0..i {
-                let node_j = &nodes[sources[j] as usize];
-                self.update_cache(node_j, &node, false, &mut new_cache);
+                if let Some(node_j) = find_node_by_source(nodes, sources[j]) {
+                    self.update_cache(node_j, &node, false, &mut new_cache);
+                }
             }
         }
 
@@ -148,10 +158,11 @@ impl NFPStore {
         let mut nodes: Vec<PolygonNode> = Vec::new();
 
         for i in 0..self.sources.len() {
-            let mut node = input_nodes[self.sources[i] as usize].clone();
-            node.rotation = self.rotations[i] as f32;
-
-            nodes.push(node);
+            if let Some(base) = find_node_by_source(input_nodes, self.sources[i]) {
+                let mut node = base.clone();
+                node.rotation = self.rotations[i] as f32;
+                nodes.push(node);
+            }
         }
 
         Self::generate_placement_data(&nfp_buffer_f32, self.config_compressed, &nodes, area)

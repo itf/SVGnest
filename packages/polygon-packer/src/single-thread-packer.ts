@@ -27,7 +27,7 @@ export default class PolygonPacker extends BasePacker {
      * 
      * @returns The best placement wrapper containing polygon positions and fitness score
      */
-    public nest(): PlacementWrapper {
+    public nest(): PlacementWrapper | null {
         return this.wasmNesting.nest();
     }
 }
